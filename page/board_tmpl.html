@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>犬電 発車標</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 発車標：駅と番線・盤面の様式（液晶／3色LED／フルカラーLED）・段数・言語を選ぶ → 盤面 → このあとの発車 → 番線の時刻表。
+   盤面はいつも暗い地、まわりは他のページと同じ配色。段はどれも同じ高さ・同じ字の大きさ（本人の指定）。
+   時刻などの数字（等幅）は JetBrains Mono（2026-11-12 本人が見本から選んだ。もとは Azeret Mono）。
+   LEDは点（ドット）の並びとして描く：使う字はすべて、光らせる点を表（page/ledfont16.txt・ledfont24.txt）に決めてあり、
+   盤面はその表の点だけで描く（フォントは使わない）。表は src/ledfont.py が作り、手で直せる。電車の絵も光らせる点を決めて描く */
+:root{
+  --bg:#F5F1E9; --panel:#FBF9F4; --ink:#35383B; --sub:#645044; --muted:#7B6A5E; --line:#DED2C4;
+  --teal:#236962; --amber:#EAC05B; --sel:#35383B; --sel-fg:#F5F1E9;
+  --k-loc:#5F6367; --k-exp:#246BA3; --k-rap:#BE493B; --k-dh:#9A8B7E;
+  --f-ui:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054;
+  --teal:#5BAEA3; --amber:#EAC05B; --sel:#F5F1E9; --sel-fg:#2E3134; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054;
+  --teal:#5BAEA3; --amber:#EAC05B; --sel:#F5F1E9; --sel-fg:#2E3134; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);line-height:1.6}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 16px 64px;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--sub);font-weight:500}
+h1{font-size:clamp(24px,4vw,32px);margin:0;letter-spacing:.08em;line-height:1.3}
+h2{font-size:16px;margin:0;letter-spacing:.08em}
+.lead{color:var(--sub);font-size:13.5px;margin:0;max-width:80ch}
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border-top:1.5px solid var(--ink);padding-top:9px}
+.sec-h .meta{font-size:12.5px;color:var(--muted)}
+button,select,input{font:inherit;color:inherit}
+/* 操作 */
+.ctrl{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.ctrl .line{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.ctrl .cap{font-size:12px;color:var(--muted);letter-spacing:.08em;min-width:4.5em}
+select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:15px;font-weight:700;min-width:9em}
+select.sm{min-width:0;font-size:13px;font-weight:400;padding:4px 6px}
+.btn{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:13px;cursor:pointer;line-height:1.4;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{background:var(--sel);color:var(--sel-fg);border-color:var(--sel)}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.plats .btn{display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px}
+.plats .no{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 .3em;border-radius:.85em;background:var(--ink);color:var(--bg);font-family:var(--f-num);font-size:12px}
+.plats .btn[aria-pressed="true"] .no{background:var(--sel-fg);color:var(--sel)}
+.plats .dir{font-size:12.5px}
+#dirs .no{font-family:var(--f-ui);font-size:11px;font-weight:700;border-radius:.4em}      /* 方面のボタンの「上り・下り」 */
+input[type=time]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--f-num);font-size:14px}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+.hint{font-size:12px;color:var(--muted);margin:0}
+
+/* ===== 盤面（共通） ===== */
+.board{container:board/inline-size;background:#0C0E11;color:#F4F2EC;border-radius:12px;overflow:hidden;
+  box-shadow:0 0 0 6px #2A2D31,0 0 0 7px #43474C,0 14px 40px rgba(0,0,0,.25)}
+.bd{font-size:clamp(13px,2.45cqw,32px);font-family:var(--f-ui)}
+.bd-h{display:flex;align-items:center;gap:.7em;padding:.5em .8em;border-bottom:2px solid #262A30;background:#101318}
+.bd-h .pno{display:inline-flex;align-items:baseline;justify-content:center;flex:none;line-height:2.1em;height:2.1em;min-width:2.1em;padding:0 .45em;border-radius:1.05em;
+  background:#F4F2EC;color:#0C0E11;font-weight:700;font-size:1.1em;white-space:nowrap}
+.bd-h .pno small{font-size:.5em;margin-left:.1em}
+.bd-h .ttl{display:flex;flex-direction:column;line-height:1.22;min-width:0}
+.bd-h .st{font-size:.72em;color:#9DA3A9;letter-spacing:.1em}
+.bd-h .dir{font-size:1.02em;font-weight:700;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-h .alt{font-size:.6em;color:#9DA3A9;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-h .clk{margin-left:auto;font-family:var(--f-num);font-size:1.25em;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.bd-h .clk small{font-size:.62em;color:#9DA3A9}
+.bd-h .clk .sim{display:block;font-family:var(--f-ui);font-size:.42em;color:#F2C94C;letter-spacing:.08em}
+#bLed{display:none}
+
+/* ===== 液晶（HTMLの文字で描く） ===== */
+.cols,.row{display:grid;grid-template-columns:var(--gc);align-items:center;column-gap:.5em;padding:0 .8em}
+.cols{color:#9DA3A9;padding-top:.45em;padding-bottom:.25em;line-height:1.15}
+.cols>span{font-size:.56em;letter-spacing:.1em;white-space:nowrap;overflow:hidden}
+.cols .r{text-align:right} .cols .m{text-align:center}
+.c{display:flex;align-items:center;min-width:0;height:100%;overflow:hidden}
+.c .fx{flex:none;white-space:nowrap;transform-origin:left center}
+.c-tm,.c-cr{justify-content:flex-end} .c-tm .fx,.c-cr .fx{transform-origin:right center}
+.c-kind,.c-pl{justify-content:center} .c-kind .fx,.c-pl .fx{transform-origin:center}
+.row.empty>*{visibility:hidden}
+.row.end{grid-template-columns:1fr}
+.row.end .c{justify-content:center}
+.blink{animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+.tick{position:relative;overflow:hidden;white-space:nowrap}
+.tick .tt{position:absolute;left:0;top:0;will-change:transform}
+/* 段の字は LED（字が段の高さいっぱい）に近づけて大きめにする。--zk 種別・--zt 時刻・--zd 行先・--zc 両数 */
+.cols,.row{--gc:2.6em 4.4em 5.6em minmax(0,1fr) 3.4em 7.4em;--zk:1.3em;--zt:1.7em;--zd:1.8em;--zc:1.6em;--jw:5.4em;--nd:2.05em}
+.all .cols,.all .row{--gc:2.6em 4.4em 5.6em minmax(0,1fr) 2.6em 3.4em 7.4em}
+.row{height:2.5em;border-top:1px solid #262A30;background:#14171B}
+.c-ord .fx{font-size:.6em;color:#9DA3A9;letter-spacing:.1em}
+.c-kind{height:2em;border-radius:.2em;background:var(--kc);color:#fff;font-weight:700;letter-spacing:.14em}
+.c-kind .fx{font-size:var(--zk);padding-left:.14em}
+.c-kind .fx.jst{flex:1 1 auto;display:flex;justify-content:space-between;padding:0 .35em;letter-spacing:0}
+.k-快速{--kc:var(--k-rap)} .k-急行{--kc:var(--k-exp)} .k-各停{--kc:var(--k-loc)}
+.k-回送{--kc:transparent;color:#9DA3A9;box-shadow:inset 0 0 0 1.5px #5A5F66}
+.k-通過{--kc:transparent;color:#F2C94C;box-shadow:inset 0 0 0 1.5px #F2C94C}
+.c-tm .fx{font-family:var(--f-num);font-size:var(--zt);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.c-tm small{font-family:var(--f-ui);font-size:.4em;color:#9DA3A9;margin-left:.15em}
+.c-dst .fx{font-weight:700;font-size:var(--zd);letter-spacing:.1em}
+.c-dst small{font-size:.4em;font-weight:400;color:#9DA3A9;letter-spacing:.04em;margin-left:.4em}
+.c-dst.mute .fx{color:#9DA3A9}
+.c-dst .sno{position:relative;flex:none;width:calc(var(--nd)*82/78);height:calc(var(--nd)*82/78);margin-right:calc(var(--zd)*.5)}      /* ひし形と行先の間は行先の字の0.5倍 */
+.c-dst .sno svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.c-dst .sno .t{position:absolute;left:0;top:0;width:var(--nd);height:var(--nd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--nd)*.02);color:#35383B;font-weight:700;line-height:1;font-style:normal}
+.c-dst .sno i{font-style:normal;font-size:calc(var(--nd)*.2);letter-spacing:.04em}
+.c-dst .sno b{font-weight:700;font-size:calc(var(--nd)*.38)}
+.c-dst .jst{display:inline-flex;justify-content:space-between;width:var(--jw);min-width:max-content;letter-spacing:0}
+.c-dst .fx.jst{display:flex;width:auto;min-width:4em;flex:0 1 var(--jw)}      /* 駅ナンバリングの右の残りが足りなければ割り付けの幅を縮める。4字分より狭いときは全段そろって fit() で横に縮む */      /* 均等割り付けの幅（行先の字の大きさが単位） */
+.c-pl .fx{display:inline-grid;place-items:center;min-width:1.45em;height:1.45em;border-radius:.73em;background:#F4F2EC;color:#0C0E11;font-family:var(--f-num);font-size:1.05em}
+.c-cr .fx{font-family:var(--f-num);font-size:var(--zc);color:#F2C94C}
+.c-cr small{font-family:var(--f-ui);font-size:.55em;margin-left:.1em}
+.c-nt .fx{font-size:.8em;line-height:1.25;color:#9DA3A9;white-space:normal;flex:1 1 auto}
+.row.end .fx{color:#9DA3A9;font-size:1.3em;letter-spacing:.2em}
+.go{color:#7DD3A6} .now{color:#F2C94C} .app{color:#FF9F5A}
+/* 最下段は各段（.row）と同じ高さ 2.5em。字は行先（1.2em）より大きい 1.4em */
+.tick{height:2.5em;border-top:2px solid #262A30;background:#08090B;color:#F2C94C}
+.tick .tt{font-size:1.4em;line-height:calc(2.5em/1.4);letter-spacing:.08em}
+/* 接近・通過の表示（液晶の最下段）：LED と同じく「電車がまいります／通過します」を、ふつうの表示と
+   地を塗って字を抜いた表示とで 0.8秒ずつ交互に点滅。日英交互なら1サイクル（1.6秒）ごとに言語を替える */
+.ap{position:absolute;inset:0;overflow:hidden;color:#FF9F5A;animation:apinv 1.6s step-end infinite}
+.ap.pass{color:#FF6B5A;animation-name:apinvp}
+.ap .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ap .fx{flex:none;white-space:nowrap;transform-origin:center;font-weight:700;letter-spacing:.12em;font-size:1.4em}
+.ap.two .m0{animation:apl0 3.2s step-end infinite} .ap.two .m1{animation:apl1 3.2s step-end infinite}
+@keyframes apinv{0%{background:transparent;color:#FF9F5A}50%{background:#FF9F5A;color:#08090B}}
+@keyframes apinvp{0%{background:transparent;color:#FF6B5A}50%{background:#FF6B5A;color:#08090B}}
+@keyframes apl0{0%{visibility:visible}50%{visibility:hidden}}
+@keyframes apl1{0%{visibility:hidden}50%{visibility:visible}}
+@media (prefers-reduced-motion:reduce){
+  .tick .tt{position:static;display:block;overflow:hidden;text-overflow:ellipsis;transform:none!important}
+  .blink{animation:none} .ap,.ap.two .m0{animation:none} .ap.two .m1{display:none}
+}
+
+/* ===== LED（点の並びをキャンバスに描く）。見出しと枠は印刷した板の扱い ===== */
+.led .bd-h{background:#16191D;border-bottom:0}
+.led .cols{display:block;position:relative;height:2.3em;padding:0;background:#16191D;color:#AEB4BA}
+.led .cols>span{position:absolute;bottom:.35em;line-height:1.15}
+.led .cols>span small{display:block;font-size:.8em;letter-spacing:.02em;opacity:.85}
+.led #bRows,.led #bTick{display:none}
+.led #bLed{display:block;width:100%}
+.led .scr{background:#050403;padding:.35em 0}
+.sty-led3 .bd-h .clk,.sty-led3 .bd-h .clk small{color:#4BFF5E}
+
+@container board (max-width:620px){
+  .bd{font-size:clamp(13px,4.1cqw,24px)}
+  .cols,.row{--gc:4.4em 5em minmax(0,1fr) 3em;--zk:1.15em;--zt:1.5em;--zd:1.6em;--zc:1.4em;--jw:4.2em;--nd:1.5em}
+  .all .cols,.all .row{--gc:4.4em 5em minmax(0,1fr) 2.3em 3em}
+  .c-ord,.cols .c-ord,.c-nt,.cols .c-nt{display:none}
+}
+
+/* このあとの発車・時刻表 */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11.5px;color:var(--muted);letter-spacing:.08em;font-weight:500}
+td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+td.lg{max-width:46ch;overflow:hidden;text-overflow:ellipsis}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:color-mix(in srgb,var(--line) 45%,transparent)}
+tr.pass td,tr.dh td{color:var(--muted)}
+.chip{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:2px;color:#fff;background:var(--c);line-height:1.6;letter-spacing:.06em}
+.chip.o{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1px var(--muted)}
+.tt-grid{display:grid;grid-template-columns:3em 1fr;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.tt-grid .h{font-family:var(--f-num);text-align:center;padding:6px 0;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--line) 40%,transparent)}
+.tt-grid .m{display:flex;flex-wrap:wrap;gap:2px 4px;padding:5px 8px;border-bottom:1px solid var(--line);align-items:center}
+.tt-grid .cur{background:color-mix(in srgb,var(--amber) 22%,transparent)}
+.mn{border:0;background:transparent;padding:1px 3px;border-radius:3px;cursor:pointer;font-family:var(--f-num);font-size:14px;display:inline-flex;align-items:baseline;gap:1px;line-height:1.3}
+.mn:hover{background:color-mix(in srgb,var(--line) 70%,transparent)}
+.mn .t{font-family:var(--f-ui);font-size:10px;font-weight:700;padding:0 3px;border-radius:2px;color:#fff;background:var(--c);align-self:center;margin-right:1px}
+.mn sup{font-size:9px;color:var(--muted)}
+.mn .d{font-family:var(--f-ui);font-size:10px;color:var(--sub)}
+.mn.past{opacity:.38}
+.mn.next{outline:2px solid var(--amber);outline-offset:-1px}
+.legend{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+/* 列車の詳細 */
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:0;max-width:min(560px,calc(100vw - 32px));width:100%}
+dialog::backdrop{background:rgba(20,22,24,.45)}
+.dl-h{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.dl-h h3{margin:0;font-size:17px;line-height:1.4}
+.dl-h .sub{font-size:12.5px;color:var(--muted)}
+.dl-h .x{margin-left:auto}
+.dl-b{max-height:min(70vh,640px);overflow:auto}
+.dl-b table{font-size:13px}
+.dl-b tr{cursor:default}
+.dl-b tr.ps td{color:var(--muted)}
+.dl-b tr.here td{background:color-mix(in srgb,var(--amber) 25%,transparent);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow" data-i="eyebrow"></div>
+    <h1 data-i="h1"></h1>
+    <p class="lead" id="lead"></p>
+  </header>
+
+  <section class="ctrl" id="ctrl">
+    <div class="line">
+      <label class="cap" for="st" data-i="cStation"></label>
+      <button class="btn" type="button" id="prev">◀</button>
+      <select id="st"></select>
+      <button class="btn" type="button" id="next">▶</button>
+    </div>
+    <div class="line">
+      <span class="cap" data-i="cTrack"></span>
+      <div class="seg plats" id="plats" role="group"></div>
+    </div>
+    <div class="line">
+      <span class="cap" data-i="cDir"></span>
+      <div class="seg plats" id="dirs" role="group"></div>
+    </div>
+    <div class="line">
+      <span class="cap" data-i="cTime"></span>
+      <button class="btn" type="button" id="live" aria-pressed="true" data-i="now"></button>
+      <input type="time" id="tm" step="1">
+      <button class="btn" type="button" data-step="-600" data-i="m10"></button>
+      <button class="btn" type="button" data-step="-60" data-i="m1"></button>
+      <button class="btn" type="button" data-step="60" data-i="p1"></button>
+      <button class="btn" type="button" data-step="600" data-i="p10"></button>
+      <button class="btn" type="button" id="play" aria-pressed="false"></button>
+      <select id="spd" class="sm">
+        <option value="1">×1</option><option value="10" selected>×10</option><option value="60">×60</option><option value="300">×300</option>
+      </select>
+    </div>
+    <div class="line">
+      <span class="cap" data-i="cStyle"></span>
+      <div class="seg" role="group" id="stys">
+        <button class="btn" type="button" data-sty="lcd" data-i="sLcd"></button>
+        <button class="btn" type="button" data-sty="led3" data-i="sLed3"></button>
+        <button class="btn" type="button" data-sty="ledfc" data-i="sLedfc"></button>
+      </div>
+      <span class="cap" data-i="cRows" style="min-width:0;margin-left:8px"></span>
+      <select id="rows" class="sm">
+        <option value="auto" data-i="auto"></option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+      </select>
+      <span class="cap" data-i="cLang" style="min-width:0;margin-left:8px"></span>
+      <div class="seg" role="group" id="langs">
+        <button class="btn" type="button" data-lang="ja">日本語</button>
+        <button class="btn" type="button" data-lang="en">English</button>
+        <button class="btn" type="button" data-lang="alt" data-i="lAlt"></button>
+      </div>
+    </div>
+    <div class="line">
+      <span class="cap" data-i="cShow"></span>
+      <label class="chk"><input type="checkbox" id="oPass"><span data-i="oPass"></span></label>
+      <label class="chk"><input type="checkbox" id="oTerm"><span data-i="oTerm"></span></label>
+      <label class="chk"><input type="checkbox" id="oDh" checked><span data-i="oDh"></span></label>
+      <label class="chk"><input type="checkbox" id="oAppr" checked><span data-i="oAppr"></span></label>
+    </div>
+    <p class="hint" data-i="hint"></p>
+  </section>
+
+  <section class="board" id="board">
+    <div class="bd" id="bd">
+      <div class="bd-h">
+        <div class="pno" id="bPno"></div>
+        <div class="ttl"><span class="st" id="bSt"></span><span class="dir" id="bDir"></span><span class="alt" id="bAlt"></span></div>
+        <div class="clk" id="bClk"></div>
+      </div>
+      <div class="cols" id="bCols"></div>
+      <div class="scr" id="bScr">
+        <div id="bRows"></div>
+        <div class="tick" id="bTick"></div>
+        <canvas id="bLed"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="sec-h"><h2 data-i="nxH"></h2><span class="meta" id="nxMeta"></span></div>
+    <div class="tbl-wrap"><table id="nx"></table></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="sec-h"><h2 data-i="ttH"></h2><span class="meta" id="ttMeta"></span></div>
+    <div class="tt-grid" id="tt"></div>
+    <div class="legend" id="ttLeg"></div>
+  </section>
+</div>
+
+<dialog id="dl" aria-labelledby="dlT"><div class="dl-h"><div><h3 id="dlT"></h3><div class="sub" id="dlS"></div></div><button class="btn x" type="button" id="dlX">×</button></div><div class="dl-b"><table id="dlB"></table></div></dialog>
+
+<script>
+const D=__DATA__;
+const ST=D.stations.map(s=>({name:s[0],line:s[1],en:s[2],plats:s[3].map(p=>({p:p[0],ja:p[1],en:p[2],arrOnly:!!p[3]})),no:s[4],dirs:s[5]}));
+const BND=D.bounds;                       // 方面 [日本語, 英語]。S.pl が "d:番号" のときは方面で選んでいる
+const SIX=Object.fromEntries(ST.map((s,i)=>[s.name,i]));
+const TR=D.trains.map(a=>({no:a[0],kind:a[1],d:a[2],o:a[3],dir:a[4],co:a[5],cd:a[6],split:a[7],extra:a[8],stops:a[9]}));
+TR.forEach(t=>{t.ks=t.split?t.stops.findIndex(s=>ST[s[0]].name===t.split):-1});
+const KC={"快速":"var(--k-rap)","急行":"var(--k-exp)","各停":"var(--k-loc)","回送":"var(--k-dh)"};
+const KN={"快速":["快速","Rapid Express","快速","R. Exp."],"急行":["急行","Express","急行"],"各停":["各停","Local","各駅停車"],"回送":["回送","Not in service","回送"]};
+const DAY0=4*3600, ALT_MS=8000;                 // 0時〜4時は前日の続き。日英交互は8秒ごと
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const two=n=>String(n).padStart(2,'0');
+const hm=s=>{s=Math.floor(s);return `${Math.floor(s/3600)%24}:${two(Math.floor(s%3600/60))}`};
+const hms=s=>{s=Math.floor(s);return `${Math.floor(s/3600)%24}:${two(Math.floor(s%3600/60))}'${two(s%60)}`};
+const SN=(n,l)=>l==="en"?(SIX[n]!=null?ST[SIX[n]].en:n):n;          // 駅名（言語）
+const kn=(k,l)=>KN[k][l==="en"?1:0], kl=(k,l)=>KN[k][l==="en"?1:2];
+const kb=(k,l)=>l==="en"?(KN[k][3]||KN[k][1]):KN[k][0];      // 盤面の種別の欄（英語は枠に入る略称があればそれ。案内の文・表は kn・kl の正式名）
+
+// ---- 画面まわりの文言（盤面の言語が「交互」のときは日本語）
+const I={eyebrow:["犬村電気鉄道 ・ 平日ダイヤ","Inumura Railway · Weekday timetable"],h1:["発車標","Departure board"],
+ cStation:["駅","Station"],cTrack:["番線","Track"],cDir:["方面","Direction"],cTime:["時刻","Time"],cStyle:["盤面","Display"],cRows:["段数","Rows"],cLang:["言語","Language"],cShow:["表示","Show"],
+ now:["現在時刻","Now"],m10:["−10分","−10 min"],m1:["−1分","−1 min"],p1:["＋1分","+1 min"],p10:["＋10分","+10 min"],
+ sLcd:["液晶","LCD"],sLed3:["3色LED","3-color LED"],sLedfc:["フルカラーLED","Full-color LED"],auto:["自動","Auto"],lAlt:["日英交互","Alternate"],
+ oPass:["通過する列車","Passing trains"],oTerm:["当駅止まり","Terminating here"],oDh:["回送","Not in service"],oAppr:["接近・通過の表示","Approach alerts"],
+ hint:["「現在時刻」はこの端末の時計に合わせます。0時〜4時は前日の続き（終電まで）として扱います。番線の代わりに方面で選ぶと、その方面へ発車する列車を番線をまたいで出します。段数の「自動」は番線・方面ごとなら3段、全番線なら6段です。列車の行をクリックすると停車駅と時刻が出ます。",
+       "\"Now\" follows this device's clock; 0:00–4:00 counts as the previous service day. Choosing a direction instead of a track shows trains leaving that way from any track. \"Auto\" rows: 3 for one track or direction, 6 for all tracks. Click a train for its stops and times."],
+ nxH:["このあとの発車","Upcoming"],ttH:["時刻表","Timetable"]};
+const CL=()=>S.lang==="en"?"en":"ja";
+const tx=k=>I[k][CL()==="en"?1:0];
+const L2=(ja,en,l)=>(l||CL())==="en"?en:ja;
+
+// ---- 状態
+const S={si:0,pl:"all",live:true,base:DAY0,t0:performance.now(),play:false,spd:10,pass:false,term:false,dh:true,appr:true,sty:"lcd",rows:"auto",lang:"ja"};
+function now(){
+  if(S.live){const d=new Date();let s=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()+d.getMilliseconds()/1000;if(s<DAY0)s+=86400;return s}
+  return S.base+(S.play?(performance.now()-S.t0)/1000*S.spd:0);
+}
+function setTime(s){S.live=false;S.base=Math.max(DAY0,Math.min(DAY0+86400-1,s));S.t0=performance.now();syncCtrl();saveUrl()}
+const BL=()=>S.lang==="alt"?(Math.floor(performance.now()/ALT_MS)%2?"en":"ja"):S.lang;      // 盤面の言語
+const nRows=()=>S.rows==="auto"?(S.pl==="all"?6:3):+S.rows;
+const isLed=()=>S.sty!=="lcd";
+
+// ---- 駅ごとの発着（その駅の全列車。種類：dep 発車、pass 通過、arr 当駅止まり）
+const EVC=new Map();
+function eventsAt(si){
+  if(EVC.has(si))return EVC.get(si);
+  const ev=[];
+  TR.forEach((t,ti)=>t.stops.forEach((s,k)=>{
+    if(s[0]!==si)return;
+    const last=k===t.stops.length-1;let type,time;
+    if(k===0){type="dep";time=s[2]}else if(last){type="arr";time=s[1]}else if(s[3]){type="dep";time=s[2]}else{type="pass";time=s[1]}
+    ev.push({ti,k,t,type,time,arr:k===0?null:s[1],plat:s[4],bnd:s[5]});
+  }));
+  ev.sort((a,b)=>a.time-b.time||a.ti-b.ti);EVC.set(si,ev);return ev;
+}
+const arrOnly=()=>{const p=ST[S.si].plats.find(x=>x.p===S.pl);return !!(p&&p.arrOnly)};
+const dirOf=()=>S.pl.startsWith("d:")?+S.pl.slice(2):null;           // 方面で選んでいれば、その方面の番号
+const multi=()=>S.pl==="all"||dirOf()!=null;                            // 番線をまたいで出す（番線の欄を出す）
+const onPlat=e=>{const d=dirOf();return S.pl==="all"||(d!=null?e.bnd===d:e.plat===S.pl)};
+const selName=l=>{const d=dirOf();return S.pl==="all"?L2("・全番線"," · all tracks",l):d!=null?L2("・"+BND[d][0]," · "+BND[d][1],l):L2("・"+S.pl+"番線"," · Track "+S.pl,l)};
+const dirPlats=()=>[...new Set(eventsAt(S.si).filter(e=>e.type==="dep"&&e.t.kind!=="回送"&&onPlat(e)&&e.plat).map(e=>e.plat))].sort((a,b)=>a-b);
+function shown(e){
+  if(e.t.kind==="回送"&&!S.dh)return false;
+  if(e.type==="pass"&&!S.pass)return false;
+  if(e.type==="arr"&&!S.term&&!arrOnly())return false;      // 到着だけの番線は、当駅止まりをいつも出す
+  return onPlat(e);
+}
+const until=e=>e.type==="arr"?e.time+30:e.time;
+function upcoming(n,t){const out=[];for(const e of eventsAt(S.si)){if(until(e)<=t||!shown(e))continue;out.push(e);if(out.length>=n)break}return out}
+const carsAt=(t,k)=>t.ks>=0&&k>=t.ks?t.cd:t.co;
+
+// ---- 停車駅・分割の案内
+function stopText(t,k,l){
+  const rest=t.stops.slice(k+1),nm=s=>SN(ST[s[0]].name,l),en=l==="en";
+  if(!rest.length)return "";
+  if(rest.every(s=>s[3]))return rest.length>1?(en?`All stations to ${SN(t.d,l)}`:"終点まで各駅に止まります"):"";
+  let a=0;while(a<rest.length&&rest[a][3])a++;
+  let j=rest.length;while(j>0&&rest[j-1][3])j--;
+  const tailAll=rest.length-j>=4;
+  const head=a>=3?[en?`all stations to ${nm(rest[a-1])}`:`${nm(rest[a-1])}までの各駅`]:rest.slice(0,a).map(nm);
+  const mid=rest.slice(a,tailAll?j:rest.length).filter(s=>s[3]).map(nm);
+  const tail=tailAll?[en?`all stations from ${nm(rest[j])}`:`${nm(rest[j])}から先の各駅`]:[];
+  return en?"Stops: "+[...head,...mid,...tail].join(", "):"停車駅　"+[...head,...mid,...tail].join("・");
+}
+function splitText(t,k,l){
+  if(t.ks<0||k>=t.ks)return "";
+  const en=l==="en",sp=SN(t.split,l),d=SN(t.d,l);
+  if(t.cd<t.co)return en?`Front ${t.cd} cars to ${d}; rear ${t.co-t.cd} cars terminate at ${sp}`:`前${t.cd}両は${d}まで、後ろ${t.co-t.cd}両は${sp}止まりです`;
+  return en?`${t.cd-t.co} cars added at ${sp}`:`${sp}で後ろに${t.cd-t.co}両を連結します`;
+}
+function infoText(e,l){
+  const t=e.t,en=l==="en",d=SN(t.d,l);
+  if(t.kind==="回送")return en?"This train is not in service. Please do not board.":"この電車は回送電車です。ご乗車になれません。";
+  if(e.type==="pass")return en?"This train does not stop here.":"この電車は当駅を通過します。";      // 通過・当駅止まりは種別・行先（発駅）を流さない（2026-11-12 本人の指定）
+  if(e.type==="arr")return en?"This train terminates here.":"この電車は当駅止まりです。";
+  const parts=[en?`${e.k===0?"Starts here · ":""}${kl(t.kind,l)} for ${d} · ${carsAt(t,e.k)} cars`:`${e.k===0?"当駅始発 ":""}${kl(t.kind,l)} ${d}行き　${carsAt(t,e.k)}両`];
+  const st=stopText(t,e.k,l);if(st)parts.push(st);
+  const sp=splitText(t,e.k,l);if(sp)parts.push(sp);
+  for(const c of connections(e))parts.push(connText(c,l));
+  return parts.join("　◆　");
+}
+// ---- 接続列車：この列車が先の駅に着いてから10分以内にそこを出る営業列車で、同じ向きに進み、
+//   この列車が行かない駅へ行くか（支線・終点の先）、この列車より先に着く駅があるもの。当駅でも乗れる列車は除く。
+//   同じ列車に乗り換えられる駅がいくつかあれば、いちばん先の駅（この列車に長く乗っていられる駅）にする。1駅1本・駅の早い順に2本まで
+const CONN_WIN=600, DEPS=new Map(), CONN=new Map();
+const depsAt=si=>{if(!DEPS.has(si))DEPS.set(si,eventsAt(si).filter(e=>e.type==="dep"&&e.t.kind!=="回送"));return DEPS.get(si)};
+function connections(e){
+  const key=e.ti+"|"+e.k;if(CONN.has(key))return CONN.get(key);
+  const t=e.t,here=t.stops[e.k][0],by=new Map();       // 乗り換える列車 → {j: この列車の何駅目, si, u}
+  if(e.type==="dep"&&t.kind!=="回送")for(let j=e.k+1;j<t.stops.length;j++){
+    const s=t.stops[j],ta=s[1];if(!s[3]||ta==null)continue;
+    const later=new Map();for(let i=j+1;i<t.stops.length;i++)later.set(t.stops[i][0],t.stops[i]);      // この列車がこの先で通る駅
+    for(const u of depsAt(s[0])){
+      if(u.time<ta)continue;if(u.time>ta+CONN_WIN)break;
+      const U=u.t;if(u.ti===e.ti||U.dir!==t.dir||U.stops.some(z=>z[0]===here&&z[3]))continue;
+      const gain=U.stops.slice(u.k+1).some(z=>{if(!z[3])return false;const w=later.get(z[0]);return !w||(w[3]&&z[1]<w[1])});
+      if(gain)by.set(u.ti,{j,si:s[0],u});
+    }
+  }
+  const out=[];
+  for(const c of [...by.values()].sort((a,b)=>a.j-b.j||a.u.time-b.u.time)){if(out.length>=2)break;if(!out.some(o=>o.si===c.si))out.push(c)}
+  CONN.set(key,out);return out;
+}
+function connText(c,l){
+  const U=c.u.t,x=SN(ST[c.si].name,l),d=SN(U.d,l);
+  return l==="en"?`Connects at ${x} with the ${hm(c.u.time)} ${kl(U.kind,l)} for ${d}`:`${x}で ${hm(c.u.time)}発の${kl(U.kind,l)} ${d}行きに接続します`;
+}
+// ---- 接近・通過：選んでいる番線に、60秒以内に着く・通る列車（表示の切り替えに関係なく）
+function approachEv(t){
+  for(const e of eventsAt(S.si)){
+    if(!onPlat(e))continue;
+    const a=e.type==="dep"?e.arr:e.time;
+    if(a==null)continue;
+    if(a-t>60)break;
+    if(a>t)return e;
+  }
+  return null;
+}
+function approachText(e,l){
+  const en=l==="en",all=multi()&&e.plat,pass=e.type==="pass",dh=e.t.kind==="回送";
+  const main=pass?(en?`Train passing through${all?` · Track ${e.plat}`:""}`:`${all?e.plat+"番線を ":""}電車が通過します`)
+                 :(en?`${dh?"Out-of-service train":"Train"} approaching${all?` · Track ${e.plat}`:""}`:`${all?e.plat+"番線に ":""}${dh?"回送電車":"電車"}がまいります`);
+  const sub=en?"Please stand behind the yellow tactile paving":"危ないですから黄色い点字ブロックまでお下がりください";
+  return {pass,main,sub};
+}
+
+// ---- 段の中身（液晶・LEDで共通）
+function rowData(e,t,l,led){
+  const en=l==="en",tr=e.t,dh=tr.kind==="回送",pass=e.type==="pass";
+  const r={kk:pass?"通過":tr.kind,kt:pass?(en?"Passing":"通過"):kb(tr.kind,l),tm:hm(e.time),suf:"",dst:SN(tr.d,l),sub:"",mute:false,
+    plat:e.plat||"",cars:String(carsAt(tr,e.k)),unit:en?" cars":"両",nt:"",ntc:"",blink:false,sp:""};
+  r.no=SIX[tr.d]!=null?ST[SIX[tr.d]].no:0;           // 行先の駅ナンバリング（液晶だけ出す）
+  if(pass){r.mute=true;r.dst="";r.no=0;r.cars=""}            // 通過する列車は行先を出さない（2026-11-12 本人の指定）
+  else if(e.type==="arr"){r.mute=true;r.kt="";r.dst=en?"Terminates here":"当駅止まり";      // 当駅止まりは種別を出さない（2026-11-12 本人の指定）
+   r.suf=en?"arr":"着";if(t>=e.time){r.nt=en?"Arrived":"到着しました";r.ntc="now"}}
+  if(e.type==="arr")r.no=0;
+  if(dh){r.no=0;r.mute=true;r.dst=en?"Not in service":"回送";r.sub="";if(en)r.kt="";      // 英語は行先に Not in service と出すので、種別の欄は空ける
+   if(!r.nt){r.nt=en?"No boarding":"ご乗車になれません"}}
+  if(e.type==="dep"){
+    const a=e.arr;
+    if(a!=null&&t>=a){r.nt=en?"Boarding":"停車中";r.ntc="now"}          // 停車中は点滅させない。到着前（まもなく到着）は備考に出さない（本人の指定）
+    else if(e.k===0&&!dh){r.nt=en?"Starts here":"当駅始発";r.ntc="go"}
+    if(tr.ks>e.k&&!dh)r.sp=en?`${tr.cd<tr.co?"Splits":"Joins"} at ${SN(tr.split,l)}`:`${tr.split}で${tr.cd<tr.co?(led?"分割":"切り離し"):"連結"}`;
+  }else if(pass&&e.time-t<=60){r.nt=en?"Passing":"通過します";r.ntc="app";r.blink=true}
+  if(!r.cars)r.unit="";
+  return r;
+}
+
+// ---- 液晶：はみ出す字は横に詰める
+function fit(root){
+  root.querySelectorAll(".fx").forEach(el=>{
+    el.style.transform="";
+    const c=el.parentElement,cs=getComputedStyle(c);
+    let avail=c.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    for(const o of c.children)if(o!==el){const os=getComputedStyle(o);avail-=o.getBoundingClientRect().width+parseFloat(os.marginLeft)+parseFloat(os.marginRight)}      // 駅ナンバリングなど横に並ぶもの
+    if(avail<=0)return;
+    const w=el.getBoundingClientRect().width;
+    if(w>avail+.5)el.style.transform=`scaleX(${(avail/w).toFixed(4)})`;
+  });
+}
+const fx=(inner,cls="")=>`<span class="fx ${cls}">${inner}</span>`;
+// 駅ナンバリング（サインシステム デザインガイドライン）：角丸ひし形（正方形を45°回し、角丸は一辺の20％）に「IM」と2桁の番号。
+//   アイボリーの形にチャコールの字、影は路線色（IM01〜28 本線＝藍、IM41〜 蓮木線＝ティール、IM61〜 奥雲線＝金茶）を右下にずらしてぼかさない。
+//   中の字はひし形の頂点間（--nd）に対して 記号0.2倍・番号0.38倍、太さは Bold
+const LINE_COL=n=>n>=61?"#8F6420":n>=41?"#236962":"#2B3A67";
+const stNo=n=>`<span class="sno" role="img" aria-label="IM${String(n).padStart(2,"0")}"><svg viewBox="11 11 82 82" aria-hidden="true"><polygon points="54,27 81,54 54,81 27,54" fill="${LINE_COL(n)}" stroke="${LINE_COL(n)}" stroke-width="24" stroke-linejoin="round"/><polygon points="50,23 77,50 50,77 23,50" fill="#F5F1E9" stroke="#F5F1E9" stroke-width="24" stroke-linejoin="round"/></svg><span class="t" aria-hidden="true"><i>IM</i><b>${String(n).padStart(2,"0")}</b></span></span>`;
+const cell=(cls,inner)=>`<div class="c ${cls}">${fx(inner)}</div>`;
+
+// =====================================================================
+// ---- LED：点の並び
+//   ・盤面の点は cols × H。1段は N 点の高さ、段と段の間は G 点（光らない点が続く）。
+//   ・字は、字ごとに光らせる点を決めた表（LEDFONT。page/ledfont16.txt・ledfont24.txt を board.py が埋め込む）から描く。
+//     枠に入らない字は、字ごとの幅を同じ割合で縮める（縮めた1列は、もとの列のどれかが光っていれば光らせる）。
+//   ・表は src/ledfont.py が作る。字の点は LED表示器用のビットマップ字体（fonts/ の BDF）からそのまま取る：
+//     縦16点は 東雲16（漢字・かな）と Helvetica 14（英数。大きい数字は Helvetica 12・100dpi）、縦24点は 縁架ドットゴシック24（漢字・かな）と Helvetica 18（英数）。
+//     このページ（下の ledGenerate。?ledgen= で開く）は盤面に出る字を洗い出す。字体に入っていない字だけ、
+//     ページがフォントから点を作ったもの（LEDCFG の gen・ledGlyph。線の芯だけを点にする）を使う。
+//   ・字は段の高さいっぱいの大きさにし、枠に入らない字は横に詰める。日本語の行先は字の間をあけて広げる。
+//   ・最下段は、流れる文字（1点ずつ送る）か、接近・通過の表示（文を地と反転させて点滅し、日英交互なら1サイクルごとに
+//     言語を替える。LEDCFG の apInv。apInv のない様式では 電車の絵 → 点滅 → 注意の文）。
+// =====================================================================
+const LEDCFG={
+  led3:{N:16,G:2,off:"#2A190D",bg:"#060403",rad:.42,
+    gen:{cjk:{f:["300","Noto Sans JP"],fill:1,cell:1,m:"skel"},lat:{f:["400","Roboto Condensed"],fill:1,m:"skel"},dig:{f:["400","Roboto Condensed"],fill:1,m:"skel"}},
+    pal:{r:"#FF3B2E",o:"#FF9A1C",g:"#4BFF5E"},
+    col:{kind:{快速:"r",急行:"o",各停:"g",回送:"r",通過:"o"},band:{},kfg:null,tm:"o",dst:"o",mute:"r",pl:"o",cr:"g",nt:"r",go:"g",now:"r",app:"o",
+         tick:"o",apArr:"o",apPass:"r",apSub:"g",train:"o",end:"o"},
+    apInv:.8},           // 接近・通過は文を地の色と反転させて点滅（1つの状態の秒数）。電車の絵・注意の文は出さない
+  ledfc:{N:24,G:2,off:"#1A1B1D",bg:"#060607",rad:.45,
+    gen:{cjk:{f:["300","Noto Sans JP"],fill:23/24,cell:1,m:"skelV"},lat:{f:["400","Roboto Condensed"],fill:1,m:"skelV"},dig:{f:["400","Roboto Condensed"],fill:1,m:"skelV"}},
+    pal:{w:"#F4F4EE",y:"#FFD43B",o:"#FF8A3D",r:"#FF4A3A",g:"#55E37A",k:"#8E949A",R:"#E8352B",B:"#2C78E4",l:"#FFF09A"},
+    col:{kind:{快速:"w",急行:"w",各停:"w",回送:"k",通過:"o"},band:{快速:"R",急行:"B"},tm:"l",dst:"w",mute:"k",pl:"w",cr:"w",nt:"y",go:"g",now:"y",app:"o",
+         tick:"y",apArr:"y",apPass:"r",apSub:"w",train:"w",end:"w"},
+    apInv:.8}            // 接近・通過は3色と同じく反転させて点滅
+};
+// 電車の絵：光らせる点を決める（幅48・高さ14。左が先頭）。後で段の高さに合わせて引き伸ばす
+const TRAIN_BMP=(()=>{
+  const W=48,H=14,b=[...Array(H)].map(()=>Array(W).fill(0));
+  const left=[6,4,3];                                    // 先頭の屋根の丸み
+  for(let y=0;y<=10;y++)for(let x=(left[y]??2);x<W;x++)b[y][x]=1;
+  const hole=(x0,x1,y0,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)b[y][x]=0};
+  hole(3,8,3,6);                                         // 前面の窓
+  for(const x of [12,23,34])hole(x,x+7,3,6);             // 側面の窓
+  hole(44,45,3,8);                                       // 扉
+  for(let x=2;x<W;x++)b[8][x]=0;                         // 帯の下の線
+  for(const x of [7,14,32,39])for(let y=11;y<=13;y++)for(let i=0;i<4;i++)if(!(y===13&&(i===0||i===3)))b[y][x+i]=1;      // 車輪
+  return {W,H,b};
+})();
+const LED={cv:null,ctx:null,lay:null,cfg:null,sty:"",key:"",rowsKey:"",botKey:"",bot:null,rowsBuf:null,botSig:"",spr:[],bg:null,
+  gc:document.createElement("canvas"),mcache:new Map(),scache:new Map(),gcache:new Map(),pend:new Set(),raf:0};
+LED.gx=LED.gc.getContext("2d",{willReadFrequently:true});
+
+// ---- ここから下の ledMetric・ledThin・ledGlyph は「字の表を作る」ときだけ使う（board.html?ledgen=ポート。src/ledfont.py が開く）。
+//   実際のフォント（LEDCFG の gen。字の種類ごとに別の書体）で字を描いて点にする。盤面を描くときには使わない。
+const LEDGEN=new URLSearchParams(location.search).get("ledgen");
+const LEDref={cjk:"国東園目",dig:"0123456789",lat:"Hgjpqy"};
+const LEDdot=/[:;.,・、。]/;           // 点だけの字（細線化すると点が1つに縮むので、濃さで点にする）
+function ledFont(fam,size){return `${fam[0]} ${size}px "${fam[1]}"`}
+function ledReset(){LED.mcache.clear();LED.scache.clear();LED.gcache.clear();LED.rowsKey="";LED.botKey="";LED.botSig=""}
+// 字の大きさ：基準の字（LEDref）の上端から下端までを N*fill 点に。ベースラインはその真ん中に置く位置
+function ledMetric(gc,cls){
+  const N=LED.cfg.N,fam=gc.f,key=fam.join()+"|"+cls+"|"+N+"|"+gc.fill;
+  if(LED.mcache.has(key))return LED.mcache.get(key);
+  const c=LED.gx;c.setTransform(1,0,0,1,0,0);c.font=ledFont(fam,N);let m=c.measureText(LEDref[cls]);
+  const h0=m.actualBoundingBoxAscent+m.actualBoundingBoxDescent,size=h0>0?N*(gc.fill||1)*N/h0:N;
+  c.font=ledFont(fam,size);m=c.measureText(LEDref[cls]);
+  const r={size,base:(N-(m.actualBoundingBoxAscent+m.actualBoundingBoxDescent))/2+m.actualBoundingBoxAscent};LED.mcache.set(key,r);return r;
+}
+// 細線化（Zhang-Suen）：線を、形を保ったまま幅1の芯にする
+function ledThin(b,w,h){
+  const P=(x,y)=>(x<0||y<0||x>=w||y>=h)?0:b[y*w+x];
+  for(let ch=true;ch;){ch=false;
+    for(const step of [0,1]){const del=[];
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+        if(!b[y*w+x])continue;
+        const p2=P(x,y-1),p3=P(x+1,y-1),p4=P(x+1,y),p5=P(x+1,y+1),p6=P(x,y+1),p7=P(x-1,y+1),p8=P(x-1,y),p9=P(x-1,y-1);
+        const B=p2+p3+p4+p5+p6+p7+p8+p9;if(B<2||B>6)continue;
+        const q=[p2,p3,p4,p5,p6,p7,p8,p9,p2];let A=0;for(let i=0;i<8;i++)if(!q[i]&&q[i+1])A++;
+        if(A!==1)continue;
+        if(step===0?(p2*p4*p6||p4*p6*p8):(p2*p4*p8||p2*p6*p8))continue;
+        del.push(y*w+x);
+      }
+      if(del.length){ch=true;for(const i of del)b[i]=0}
+    }
+  }
+  return b;
+}
+// 1文字を点にする（0/1 の並び）。点の並びの見た目がLEDの字らしくなるよう、線の芯だけを点にする：
+//  ・字を8倍の細かさで描いて細線化し、芯が通る点を光らせる（線は1点の幅になる）。
+//  ・描く位置を 1/4点きざみで試し、光る点がいちばん少ない位置を選ぶ（芯が点の並びにまっすぐ乗る位置）。
+//    上下の位置も試すのは漢字・かなだけ（英字・数字は1行の中で上下がそろっていないとおかしいので動かさない）。
+//  ・m:"skelV" は、縦に3点以上続く線だけ右へ1点太らせる（縦24点の盤面。斜めの線は1点のまま）。
+//  ・漢字・かなは、送り幅を N*cell 点に決めてその真ん中に描く。
+function ledGlyph(gc,m,ch,cls){
+  const N=LED.cfg.N,fam=gc.f,c=LED.gx,R=8;
+  c.setTransform(1,0,0,1,0,0);c.font=ledFont(fam,m.size);
+  let adv=c.measureText(ch).width,ox=0;
+  if(gc.cell&&cls==="cjk"){const a2=Math.round(N*gc.cell);ox=(a2-adv)/2;adv=a2}
+  const gw=Math.ceil(adv)+6,dot=LEDdot.test(ch);
+  const draw=(scale,dx,dy,w,h)=>{if(LED.gc.width<w||LED.gc.height<h){LED.gc.width=Math.max(LED.gc.width,w);LED.gc.height=Math.max(LED.gc.height,h)}
+    c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,w,h);c.font=ledFont(fam,m.size);c.fillStyle="#fff";
+    c.setTransform(scale,0,0,scale,(3+dx)*scale,(m.base+dy)*scale);c.fillText(ch,0,0);
+    const d=c.getImageData(0,0,w,h).data,a=new Uint8Array(w*h);for(let i=0;i<w*h;i++)a[i]=d[i*4+3];return a};
+  let best=null;
+  for(const dx0 of [0,.25,.5,.75])for(const dy of (cls==="cjk"?[-.5,-.25,0,.25]:[0])){
+    const dx=dx0+ox,mask=new Uint8Array(gw*N);let score=0;
+    if(dot){const a=draw(1,dx,dy,gw,N);for(let i=0;i<gw*N;i++){mask[i]=a[i]>=128?1:0;score+=a[i]<128?a[i]:255-a[i]}}
+    else{const W=gw*R,H=N*R,a=draw(R,dx,dy,W,H),b=new Uint8Array(W*H);
+      for(let i=0;i<W*H;i++)b[i]=a[i]>=128?1:0;
+      ledThin(b,W,H);
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(b[y*W+x])mask[((y/R)|0)*gw+((x/R)|0)]=1;
+      for(const v of mask)score+=v}
+    if(!best||score<best.score)best={score,mask};
+  }
+  let mask=best.mask;
+  if(gc.m==="skelV"&&!dot){const L=(x,j)=>j>=0&&j<N&&mask[j*gw+x],m2=mask.slice();
+    for(let j=0;j<N;j++)for(let x=0;x+1<gw;x++)if(L(x,j)){let a=j,b=j;while(L(x,a-1))a--;while(L(x,b+1))b++;if(b-a>=2)m2[j*gw+x+1]=1}
+    mask=m2}
+  return {adv,gw,ox:3,mask};
+}
+// ---- LEDの字の表（page/ledfont16.txt・ledfont24.txt。board.py が埋め込む。作り方は src/ledfont.py）
+//   {"16":{"n":{字:[幅,"16進の点の並び"]},"b":{…}},"24":{…}}。n はふつうの字、b は時刻・番線の大きい数字。
+//   盤面はこの表の点だけで描く（フォントは使わない）。表にない字は四角を出して console に知らせる。
+const LEDFONT=__LEDFONT__;
+const LEDF=new Map();
+function ledFontGlyph(ch,big){
+  const N=LED.cfg.N,F=LEDFONT[N]||{n:{},b:{}},v=big&&F.b[ch]?"b":"n",key=N+"|"+v+"|"+ch;
+  if(LEDF.has(key))return LEDF.get(key);
+  const e=F[v][ch];let g;
+  if(e){
+    const w=e[0],hw=Math.ceil(w/4),mask=new Uint8Array(w*N);
+    for(let j=0;j<N;j++)for(let k=0;k<hw;k++){const nib=parseInt(e[1][j*hw+k],16);for(let b=0;b<4;b++){const x=k*4+b;if(x<w&&(nib>>(3-b))&1)mask[j*w+x]=1}}
+    g={w,mask};
+  }else{
+    const w=Math.round(N*.6),mask=new Uint8Array(w*N);
+    for(let j=2;j<N-2;j++)for(let x=1;x<w-1;x++)if(j===2||j===N-3||x===1||x===w-2)mask[j*w+x]=1;
+    g={w,mask};if(!LEDGEN)console.warn("LEDの字の表にない字",JSON.stringify(ch),"縦"+N+"点");
+  }
+  LEDF.set(key,g);return g;
+}
+// 横に縮める：縮めた後の1列は、もとの何列かのどれかが光っていれば光らせる（細い線が消えないように）
+function ledSqueeze(g,w2){
+  if(w2>=g.w)return g;
+  g.sq=g.sq||new Map();if(g.sq.has(w2))return g.sq.get(w2);
+  const N=g.mask.length/g.w,out=new Uint8Array(w2*N),r=g.w/w2;
+  for(let x=0;x<w2;x++){const a=Math.floor(x*r),b=Math.max(a+1,Math.floor((x+1)*r));
+    for(let j=0;j<N;j++)for(let s=a;s<b;s++)if(g.mask[j*g.w+s]){out[j*w2+x]=1;break}}
+  const q={w:w2,mask:out};g.sq.set(w2,q);return q;
+}
+// 文字列を並べる：字の表の幅で並べ、枠 w に入らなければ字ごとの幅を同じ割合で縮める
+//   日本語の入った文の数字は、時刻と同じ大きい数字にする（英数の小さい数字は漢字より低く小さいので、「8両」などがガタガタに見える）
+function ledSet(txt,w,o){
+  const big=o.num||/[　-ヿ㐀-鿿＀-￯]/.test(txt);
+  const ch=[...txt],g0=ch.map(c=>ledFontGlyph(c,big&&/[\d:]/.test(c))),sum=g0.reduce((a,g)=>a+g.w,0);
+  let gs=g0;
+  if(w&&sum>w){const k=w/sum;let cum=0,prev=0;gs=g0.map(g=>{cum+=g.w;const x=Math.round(cum*k),w2=Math.max(1,x-prev);prev=x;return ledSqueeze(g,w2)})}
+  const ws=gs.map(g=>g.w);
+  return {ch,gs,ws,tot:ws.reduce((a,b)=>a+b,0)};
+}
+// 点の並び out（幅 W）に字を置く（x,y,w は点の単位）。align: l/r/c
+//   just: 均等割り付けの幅（点）。二文字でも四文字でも、最初の字の左端から最後の字の右端までをこの幅（枠より広ければ枠の幅）にそろえる
+function ledText(out,W,txt,x,y,w,colKey,o={}){
+  if(!txt||w<=0)return;
+  const ci=Object.keys(LED.cfg.pal).indexOf(colKey)+1,N=LED.cfg.N,T=ledSet(txt,w,o),n=T.ch.length;
+  let px=o.align==="r"?x+w-T.tot:o.align==="c"?x+(w-T.tot)/2:x,gap=0;
+  if(o.just&&n>=2){const tw=Math.min(w,o.just);if(tw>T.tot){gap=(tw-T.tot)/(n-1);px=o.align==="c"?x+(w-tw)/2:x}}
+  T.gs.forEach((g,i)=>{
+    const gx=Math.round(px);
+    for(let j=0;j<N;j++){const row=(y+j)*W;for(let i2=0;i2<g.w;i2++){if(!g.mask[j*g.w+i2])continue;const X=gx+i2;if(X>=x&&X<x+w&&X>=0&&X<W)out[row+X]=ci}}
+    px+=T.ws[i]+gap;
+  });
+}
+// 1段ぶんの帯（流れる文字・接近表示の文）を点にしたもの。maxW を超える文は横に詰める
+function ledStrip(txt,colKey,maxW){
+  const key=[LED.sty,txt,colKey,maxW||0].join("|");if(LED.scache.has(key))return LED.scache.get(key);
+  const N=LED.cfg.N,nat=Math.ceil(ledSet(txt,0,{}).tot)+2,w=maxW?Math.min(nat,maxW):nat,buf=new Uint8Array(w*N);
+  ledText(buf,w,txt,0,0,w,colKey,{align:"c"});
+  const s={w,buf};LED.scache.set(key,s);return s;
+}
+function ledTrain(colKey){
+  const key="train|"+LED.sty+"|"+colKey;if(LED.scache.has(key))return LED.scache.get(key);
+  const N=LED.cfg.N,sc=N/16,H=TRAIN_BMP.H,W=Math.round(TRAIN_BMP.W*sc),h=Math.round(H*sc),top=Math.round((N-h)/2);
+  const idx=Object.keys(LED.cfg.pal).indexOf(colKey)+1,buf=new Uint8Array(W*N);
+  for(let y=0;y<h;y++)for(let x=0;x<W;x++)if(TRAIN_BMP.b[Math.min(H-1,Math.floor(y/sc))][Math.min(TRAIN_BMP.W-1,Math.floor(x/sc))])buf[(y+top)*W+x]=idx;
+  const s={w:W,buf};LED.scache.set(key,s);return s;
+}
+// 列の並び（点の単位）
+function ledLayout(cols,N,all){
+  const u=N,L={};let x=Math.round(.3*u);
+  const put=(k,w)=>{L[k]=[x,Math.round(w)];x+=Math.round(w)};
+  const wide=cols>=17*u;
+  put("kind",(wide?2.8:2.3)*u);x+=Math.round(.35*u);            // 広い盤面では英語の種別・両数が詰まりすぎないように広げる
+  put("tm",2.7*u);x+=Math.round(.35*u);
+  const right=Math.round(.3*u),cr=Math.round((wide?2.4:1.7)*u),pl=all?Math.round(1.2*u):0,nt=!wide?0:Math.round((cols>=24*u?5:3.4)*u),gaps=Math.round(.3*u)*((all?1:0)+(nt?1:0)+1);
+  const dw=cols-x-right-cr-pl-nt-gaps;
+  put("dst",dw);x+=Math.round(.3*u);
+  if(all){put("pl",pl);x+=Math.round(.3*u)}
+  put("cr",cr);
+  if(nt){x+=Math.round(.3*u);put("nt",nt)}
+  return L;
+}
+// 盤面の大きさを決め、消灯した点の地を描いておく
+function ledSetup(n,all){
+  const cfg=LEDCFG[S.sty],scr=$("bScr"),cssW=scr.clientWidth;
+  if(!cssW)return false;
+  const key=[S.sty,cssW,n,all,devicePixelRatio].join("|");
+  if(key===LED.key)return true;
+  LED.key=key;LED.cfg=cfg;LED.sty=S.sty;ledReset();
+  const N=cfg.N,G=cfg.G,rowH=Math.max(22,Math.min(64,cssW*(cssW<620?.085:.062)));
+  const p=rowH/N,cols=Math.floor(cssW/p),H=n*(N+G)+N,dpr=devicePixelRatio||1;
+  const offX=(cssW-cols*p)/2;
+  LED.lay={N,G,p,cols,H,n,dpr,offX,cssW,all,col:ledLayout(cols,N,all)};
+  const cv=$("bLed");LED.cv=cv;LED.ctx=cv.getContext("2d");
+  cv.width=Math.round(cssW*dpr);cv.height=Math.round(H*p*dpr);cv.style.height=(H*p)+"px";
+  // 消灯した点の地
+  const bg=document.createElement("canvas");bg.width=cv.width;bg.height=cv.height;const g=bg.getContext("2d");
+  g.fillStyle=cfg.bg;g.fillRect(0,0,bg.width,bg.height);g.fillStyle=cfg.off;
+  const r=cfg.rad*p*dpr;
+  for(let j=0;j<H;j++){const y=(j+.5)*p*dpr;g.beginPath();for(let i=0;i<cols;i++){const x=(offX+(i+.5)*p)*dpr;g.moveTo(x+r,y);g.arc(x,y,r,0,Math.PI*2)}g.fill()}
+  LED.bg=bg;
+  // 光った点（色ごとに1つ作っておき、貼るだけにする）
+  LED.spr=Object.values(cfg.pal).map(hex=>{
+    const d=Math.ceil(p*dpr)+2,s=document.createElement("canvas");s.width=s.height=d;const x=s.getContext("2d");
+    const gr=x.createRadialGradient(d/2,d/2,0,d/2,d/2,r);const hi=[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*.7+255*.3));gr.addColorStop(0,`rgb(${hi})`);gr.addColorStop(.45,hex);gr.addColorStop(1,hex);
+    x.fillStyle=gr;x.beginPath();x.arc(d/2,d/2,r,0,Math.PI*2);x.fill();return s;
+  });
+  LED.ctx.drawImage(bg,0,0);
+  return true;
+}
+// 帯（段 j0 から h 点ぶん）を描き直す
+function ledPaint(j0,h,buf){
+  const L=LED.lay,c=LED.ctx,p=L.p,dpr=L.dpr,y0=Math.floor(j0*p*dpr),y1=Math.ceil((j0+h)*p*dpr);
+  c.drawImage(LED.bg,0,y0,LED.bg.width,y1-y0,0,y0,LED.bg.width,y1-y0);
+  const d=LED.spr[0].width/2;
+  for(let j=0;j<h;j++){const y=(j0+j+.5)*p*dpr-d;for(let i=0;i<L.cols;i++){const v=buf[j*L.cols+i];if(v)c.drawImage(LED.spr[v-1],(L.offX+(i+.5)*p)*dpr-d,y)}}
+}
+// 段（rows は rowData の並び）を点にして描く
+function ledRows(rows,endMsg,l,blinkOn){
+  const L=LED.lay,cfg=LED.cfg,C=cfg.col,N=L.N,G=L.G,W=L.cols,h=L.n*(N+G)-G;
+  const buf=new Uint8Array(W*h),en=l==="en",A=L.col,keys=Object.keys(cfg.pal);
+  if(endMsg)ledText(buf,W,endMsg,0,0,W,C.end,{align:"c"});
+  rows.forEach((r,i)=>{
+    if(!r)return;
+    const y=i*(N+G),band=C.band[r.kk];
+    if(band){const bi=keys.indexOf(band)+1;for(let j=y;j<y+N;j++)buf.fill(bi,j*W+A.kind[0],j*W+A.kind[0]+A.kind[1])}      // 種別の色帯
+    const kx=band?1:0;
+    ledText(buf,W,r.kt,A.kind[0]+kx,y,A.kind[1]-2*kx,C.kind[r.kk]||C.dst,{align:"c",just:en?0:A.kind[1]});      // 日本語の種別は欄いっぱいに均等割り付け
+    ledText(buf,W,r.tm+(r.suf?(en?" ":"")+r.suf:""),A.tm[0],y,A.tm[1],C.tm,{align:"r",num:!r.suf});
+    ledText(buf,W,r.dst,A.dst[0],y,A.dst[1],r.mute?C.mute:C.dst,{just:en?0:Math.round(5.4*N)});      // 日本語の行先は二〜四文字とも四文字の幅（5.4字分）に均等割り付け
+    if(A.pl)ledText(buf,W,r.plat,A.pl[0],y,A.pl[1],C.pl,{align:"c",num:true});
+    if(r.cars)ledText(buf,W,r.cars+r.unit,A.cr[0],y,A.cr[1],C.cr,{align:"r",num:true});      // 両数の数字も大きい数字
+    if(A.nt){const t=r.nt||r.sp;if(t&&!(r.blink&&!blinkOn))ledText(buf,W,t,A.nt[0],y,A.nt[1],r.nt?(C[r.ntc]||C.nt):C.nt)}
+  });
+  LED.rowsBuf=buf;
+  ledPaint(0,h,buf);
+}
+// 最下段の中身を決める。spec.key が変わったら最初から
+function ledBottom(spec){
+  if(spec.key===LED.botKey)return;
+  LED.botKey=spec.key;LED.bot={...spec,t0:performance.now()};LED.botSig="";
+}
+function ledBlit(out,s,px){            // 帯 s を位置 px（点）に置く
+  const W=LED.lay.cols,N=LED.lay.N;
+  for(let i=Math.max(0,px);i<Math.min(W,px+s.w);i++){const sx=i-px;for(let j=0;j<N;j++){const v=s.buf[j*s.w+sx];if(v)out[j*W+i]=v}}
+}
+function ledFrame(){
+  LED.raf=0;
+  if(!isLed()||!LED.lay||!LED.bot)return;
+  const L=LED.lay,C=LED.cfg.col,N=L.N,W=L.cols,b=LED.bot,el=(performance.now()-b.t0)/1000;
+  const v=N*3.6;                       // 流れる速さ（点/秒）
+  let parts=[],sig="",inv=0;
+  if(b.type!=="tick"&&LED.cfg.apInv){
+    // 3色：「電車がまいります」を、地を消した表示と地を光らせて字を抜いた表示とで交互に点滅。
+    //   点いて→反転して を1サイクルとし、日英交互なら1サイクルごとに言語を替える
+    const per=LED.cfg.apInv,k=Math.floor(el/per),t=b.texts[Math.floor(k/2)%b.texts.length],ck=b.pass?C.apPass:C.apArr;
+    const ms=ledStrip(t.main,ck,W-2);
+    parts=[[ms,Math.round((W-ms.w)/2)]];
+    if(k%2)inv=Object.keys(LED.cfg.pal).indexOf(ck)+1;
+    sig="i"+t.main+"|"+inv;
+  }else if(b.type==="tick"){
+    // 切り替わったら（接近表示の後など）1秒あけてから、文の頭を右端から流し始める
+    const s=ledStrip(b.text,C.tick);const per=W+s.w,wait=1;
+    if(el>=wait){const px=W-(Math.floor((el-wait)*v)%per);parts.push([s,px]);sig="t"+px}else sig="t-";
+  }else{
+    // 接近・通過：電車の絵が横切る → 文を点滅（3回）→ 注意の文を流す（日英交互なら日本語・英語の順）
+    const seq=[];const tr=ledTrain(C.train);const vt=W/(b.pass?.8:1.6);
+    seq.push({d:(W+tr.w)/vt,f:e=>[[tr,Math.round(W-e*vt)]]});
+    for(const t of b.texts){
+      const ms=ledStrip(t.main,b.pass?C.apPass:C.apArr,W-2),ss=ledStrip(t.sub,C.apSub);
+      seq.push({d:2.7,f:e=>(e%.9)<.6?[[ms,Math.round((W-ms.w)/2)]]:[]});
+      seq.push({d:(W+ss.w)/v,f:e=>[[ss,Math.round(W-e*v)]]});
+    }
+    const tot=seq.reduce((a,s)=>a+s.d,0);let e=el%tot,k=0;
+    while(k<seq.length-1&&e>=seq[k].d){e-=seq[k].d;k++}
+    parts=seq[k].f(e);sig="a"+k+"|"+parts.map(p=>p[0].w+":"+p[1]).join(",");
+  }
+  if(sig!==LED.botSig){
+    LED.botSig=sig;const out=new Uint8Array(W*N);parts.forEach(([s,px])=>ledBlit(out,s,px));
+    if(inv)for(let i=0;i<out.length;i++)out[i]=out[i]?0:inv;
+    ledPaint(L.n*(N+L.G),N,out);
+  }
+  LED.raf=requestAnimationFrame(ledFrame);
+}
+function ledKick(){if(!LED.raf)LED.raf=requestAnimationFrame(ledFrame)}
+
+// ---- 盤面
+let lastRows="",lastTick="",lastAp="",anim=null;
+function renderBoard(t){
+  const l=BL(),en=l==="en",st=ST[S.si],all0=S.pl==="all",dI=dirOf(),all=multi(),pinfo=st.plats.find(x=>x.p===S.pl),led=isLed();      // all：番線の欄を出す（全番線・方面）
+  $("bd").className=`bd sty-${S.sty}${led?" led":""}${all?" all":""}`;
+  const hen=S.lang==="en";                 // 盤面の上の札（駅名・方面）は日英を併記してあるので、日英交互でも切り替えない
+  const dps=dI!=null?dirPlats():[];
+  $("bPno").innerHTML=all0?(hen?"All":"全"):dI!=null?(hen?`<small>Track${dps.length>1?"s":""} </small>${dps.join("·")}`:`${dps.join("・")}<small>番線</small>`)
+    :(hen?`<small>Track </small>${S.pl}`:`${S.pl}<small>番線</small>`);
+  const dirJa=all0?"発車案内":dI!=null?BND[dI][0]:pinfo?pinfo.ja:"",dirEn=all0?"Departures":dI!=null?`Track${dps.length>1?"s":""} ${dps.join("·")} · ${BND[dI][1]}`:pinfo?"Track "+S.pl+" · "+pinfo.en:"";
+  $("bSt").textContent=hen?`${st.en} Station`:`${st.name}駅　${st.en}`;
+  $("bDir").textContent=hen?(all0?dirEn:dI!=null?BND[dI][1]:pinfo?pinfo.en:""):dirJa;
+  $("bAlt").textContent=hen?`${st.name}駅　${dirJa}`:dirEn;
+  $("bClk").innerHTML=`${hm(t)}<small>:${two(Math.floor(t)%60)}</small>`+(S.live?"":`<span class="sim">${S.play?(hen?"Playing ×":"再生中 ×")+S.spd:(hen?"Set time":"時刻を指定")}</span>`);
+  const n=nRows(),list=upcoming(n,t),rows=list.map(e=>rowData(e,t,l,led));
+  const endMsg=list.length?"":(t>DAY0+12*3600?(en?"Service has ended for today":"本日の電車は終了しました"):(en?"No departures from this track":"この番線から発車する電車はありません"));
+  const ae=S.appr?approachEv(t):null;
+  const tl=S.lang==="alt"?null:l;          // 日英交互のときは、流す文に日本語と英語を続けて入れる（途中で切り替えない）
+  const one=(e,ll)=>(all&&e.plat?(ll==="en"?`Track ${e.plat}　`:`${e.plat}番線　`):"")+infoText(e,ll);
+  const tk=list.length?(tl?one(list[0],tl):one(list[0],"ja")+"　　　"+one(list[0],"en"))
+    :(tl==="en"?"Service has ended for today. Thank you for riding with us.":"本日の営業は終了しました。ご利用ありがとうございました。");
+
+  if(led){
+    if(anim){anim.cancel();anim=null}
+    lastRows="";lastTick="";lastAp="";
+    if(!ledSetup(n,all))return;
+    // 見出し（枠に刷った日英の見出し）。点の列の位置に合わせる
+    const Lc=LED.lay,A=Lc.col,px=v=>Lc.offX+v*Lc.p;
+    const H=[["kind","種別","Type","c"],["tm","時刻","Time","r"],["dst","行先","Destination","l"],["pl","番線","Track","c"],["cr","両数","Cars","r"],["nt","備考","Remarks","l"]];
+    $("bCols").innerHTML=H.filter(h=>A[h[0]]).map(h=>`<span style="left:${px(A[h[0]][0]).toFixed(1)}px;width:${(A[h[0]][1]*Lc.p).toFixed(1)}px;text-align:${h[3]==="c"?"center":h[3]==="r"?"right":"left"}">${h[1]}<small>${h[2]}</small></span>`).join("");
+    const blinkOn=Math.floor(performance.now()/500)%2===0;
+    const rk=JSON.stringify([rows,endMsg,l,rows.some(r=>r.blink)?blinkOn:0,LED.key]);
+    if(rk!==LED.rowsKey){LED.rowsKey=rk;ledRows([...rows,...Array(Math.max(0,n-rows.length)).fill(null)].slice(0,n),endMsg,l,blinkOn)}
+    if(ae){
+      const langs=S.lang==="alt"?["ja","en"]:[l];
+      ledBottom({key:`ap|${ae.ti}|${ae.k}|${S.lang}|${all}|${LED.key}`,type:"ap",pass:ae.type==="pass",texts:langs.map(x=>approachText(ae,x))});
+    }else ledBottom({key:"tk|"+tk+"|"+LED.key,type:"tick",text:tk});
+    ledKick();
+    return;
+  }
+
+  // ---- 液晶
+  LED.key="";LED.botKey="";
+  const H=[["","",""],["種別","Type",""],["時刻","Time","r"],["行先","Destination",""],["番線","Track","m"],["両数","Cars","r"],["備考","Remarks","c-nt"]];
+  const hs=H.filter((h,i)=>i!==4||all);
+  $("bCols").innerHTML=hs.map((h,i)=>`<span class="${h[2]}${i===0?" c-ord":""}">${en?h[1]:h[0]}</span>`).join("");
+  const ord=en?["1st","2nd","3rd"]:["先発","次発","次々発"];
+  let h="";
+  if(endMsg)h=`<div class="row end">${cell("",endMsg)}</div>`;
+  for(let i=0;i<n;i++){
+    const r=rows[i];
+    if(!r){if(rows.length)h+=`<div class="row empty"></div>`;continue}
+    // 日本語の行先（二〜四文字）は LED と同じく、四文字ぶんほどの幅（.jst）に均等割り付け
+    const dc=[...r.dst],dm=!en&&dc.length>=2&&dc.length<=4?`<span class="jst">${dc.map(c=>`<span>${esc(c)}</span>`).join("")}</span>`:esc(r.dst);
+    const dst=r.sub?`${dm}<small>${esc(r.sub)}</small>`:dm,dj=!r.sub&&dm!==esc(r.dst);
+    // 日本語の種別も札の幅いっぱいに均等割り付け
+    const kk=[...r.kt],kc=!en&&kk.length>=2&&kk.length<=4?`<div class="c c-kind k-${r.kk}"><span class="fx jst">${kk.map(c=>`<span>${esc(c)}</span>`).join("")}</span></div>`:cell("c-kind"+(r.kt?" k-"+r.kk:""),r.kt);
+    const nt=(r.nt?`<span class="${r.ntc} ${r.blink?"blink":""}">${r.nt}</span>`:"")+(r.sp?(r.nt?"<br>":"")+r.sp:"");
+    h+=`<div class="row">${cell("c-ord",ord[i]||"")}${kc}${cell("c-tm",r.tm+(r.suf?`<small>${r.suf}</small>`:""))}<div class="c c-dst${r.mute?" mute":""}">${r.no?stNo(r.no):`<span class="sno"></span>`}${dj?`<span class="fx jst">${dc.map(c=>`<span>${esc(c)}</span>`).join("")}</span>`:fx(dst)}</div>${all?cell("c-pl",r.plat):""}${cell("c-cr",r.cars?`${r.cars}<small>${r.unit}</small>`:"")}${cell("c-nt",nt)}</div>`;
+  }
+  if(h!==lastRows){lastRows=h;$("bRows").innerHTML=h;fit($("bRows"))}
+  if(ae){
+    // 日英交互のときは、段の言語の切り替えとは別に、点滅の1サイクルごとに言語を替える（CSS の .two）
+    const langs=S.lang==="alt"?["ja","en"]:[l];
+    const key=`${ae.ti}|${ae.k}|${langs.join()}|${all}`;
+    if(key!==lastAp){lastAp=key;lastTick="";if(anim){anim.cancel();anim=null}
+      const ts=langs.map(x=>approachText(ae,x));
+      $("bTick").innerHTML=`<div class="ap${ts[0].pass?" pass":""}${ts.length>1?" two":""}">${ts.map((a,i)=>`<div class="msg m${i}">${fx(esc(a.main))}</div>`).join("")}</div>`;
+      fit($("bTick"));
+    }
+    return;
+  }
+  lastAp="";
+  if(tk!==lastTick){lastTick=tk;startTick(tk)}
+}
+function startTick(txt){
+  const box=$("bTick");
+  if(anim){anim.cancel();anim=null}
+  box.innerHTML=`<span class="tt"></span>`;const el=box.firstChild;el.textContent=txt;
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const cw=box.clientWidth,w=el.getBoundingClientRect().width,px=Math.max(90,cw/7);
+  // LED と同じく、切り替わったら1秒あけてから文の頭を右端から流し始める（待つ間は右端の外に置く）
+  anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(${-w}px)`}],{duration:(cw+w)/px*1000,iterations:Infinity,delay:1000,fill:"backwards"});
+}
+
+// ---- 操作
+function buildStations(){
+  const sel=$("st"),en=CL()==="en";
+  const og=(lbl,ln)=>`<optgroup label="${lbl}">`+ST.map((s,i)=>s.line===ln?`<option value="${i}">${esc(en?s.en:s.name)}</option>`:"").join("")+"</optgroup>";
+  sel.innerHTML=og(en?"Main / Ogumo Line":"本線・奥雲線","M")+og(en?"Hasuki Line (Gakuin-mae is on the main line)":"蓮木線（学院前は本線に入っています）","H");
+  sel.value=S.si;
+}
+function buildCtrl(){
+  $("st").onchange=()=>{S.si=+$("st").value;S.pl="all";onStation()};
+  $("prev").onclick=()=>{S.si=(S.si+ST.length-1)%ST.length;S.pl="all";onStation()};
+  $("next").onclick=()=>{S.si=(S.si+1)%ST.length;S.pl="all";onStation()};
+  $("live").onclick=()=>{S.live=true;S.play=false;syncCtrl();saveUrl();renderAll()};
+  $("tm").onchange=()=>{const v=$("tm").value;if(!v)return;const [h,m,s]=v.split(":").map(Number);let x=h*3600+m*60+(s||0);if(x<DAY0)x+=86400;setTime(x);renderAll()};
+  document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{setTime(now()+ +b.dataset.step);renderAll()});
+  $("play").onclick=()=>{const t=now();S.live=false;S.play=!S.play;S.base=t;S.t0=performance.now();syncCtrl();saveUrl()};
+  $("spd").onchange=()=>{const t=now();S.spd=+$("spd").value;S.base=t;S.t0=performance.now()};
+  $("rows").onchange=()=>{S.rows=$("rows").value;saveUrl();renderAll()};
+  document.querySelectorAll("[data-sty]").forEach(b=>b.onclick=()=>{S.sty=b.dataset.sty;syncCtrl();saveUrl();renderAll()});
+  document.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyChrome();saveUrl();renderAll()});
+  [["oPass","pass"],["oTerm","term"],["oDh","dh"],["oAppr","appr"]].forEach(([id,k])=>$(id).onchange=()=>{S[k]=$(id).checked;saveUrl();renderAll()});
+  $("dlX").onclick=()=>$("dl").close();
+  $("dl").addEventListener("click",ev=>{if(ev.target===$("dl"))$("dl").close()});
+}
+function syncCtrl(){
+  $("live").setAttribute("aria-pressed",S.live);
+  $("play").setAttribute("aria-pressed",S.play&&!S.live);
+  $("play").textContent=S.play&&!S.live?L2("❚❚ 止める","❚❚ Pause"):L2("▶ 進める","▶ Play");
+  $("st").value=S.si;$("spd").value=S.spd;$("rows").value=S.rows;
+  $("oPass").checked=S.pass;$("oTerm").checked=S.term;$("oDh").checked=S.dh;$("oAppr").checked=S.appr;
+  document.querySelectorAll("[data-sty]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sty===S.sty));
+  document.querySelectorAll("[data-lang]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===S.lang));
+}
+function applyChrome(){
+  document.documentElement.lang=CL();
+  document.querySelectorAll("[data-i]").forEach(el=>el.textContent=tx(el.dataset.i));
+  $("prev").setAttribute("aria-label",L2("前の駅","Previous station"));$("next").setAttribute("aria-label",L2("次の駅","Next station"));
+  $("tm").setAttribute("aria-label",L2("表示する時刻","Time to show"));$("spd").setAttribute("aria-label",L2("進める速さ","Speed"));
+  $("rows").setAttribute("aria-label",L2("段数","Rows"));$("ctrl").setAttribute("aria-label",L2("表示する駅・番線・時刻","Station, track and time"));
+  $("board").setAttribute("aria-label",L2("発車標","Departure board"));$("dlX").setAttribute("aria-label",L2("閉じる","Close"));
+  $("lead").textContent=L2(`終日のダイヤ（${D.src}・営業列車${D.count}本・回送${D.deadhead}本）から、駅と番線を選んで発車標を出します。番線は配線図に番号がないため tracks.py で決めた仮の番号です。`,
+    `Departure boards for any station and track, built from the all-day timetable (${D.src}: ${D.count} trains in service, ${D.deadhead} out of service). Track numbers are provisional (assigned by tracks.py).`);
+  buildStations();buildPlats();syncCtrl();
+}
+function onStation(){syncCtrl();buildPlats();saveUrl();renderAll()}
+function buildPlats(){
+  const st=ST[S.si],en=CL()==="en";
+  const b=(p,no,lbl)=>`<button class="btn" type="button" data-p="${p}" aria-pressed="${S.pl===p}"><span class="no">${no}</span><span class="dir">${esc(lbl)}</span></button>`;
+  $("plats").innerHTML=b("all",en?"All":"全",en?"All tracks":"全番線")+st.plats.map(x=>b(x.p,x.p,en?x.en:x.ja)).join("");
+  $("plats").setAttribute("aria-label",L2("番線","Track"));
+  $("dirs").innerHTML=st.dirs.map(i=>{const up=BND[i][0].startsWith("上り");
+    return b("d:"+i,en?(up?"Up":"Down"):(up?"上り":"下り"),en?BND[i][1]:BND[i][0].replace(/^[上下]り /,""))}).join("");
+  $("dirs").setAttribute("aria-label",L2("方面","Direction"));
+  for(const g of ["plats","dirs"])$(g).querySelectorAll("button").forEach(x=>x.onclick=()=>{S.pl=x.dataset.p;buildPlats();saveUrl();renderAll()});
+}
+function saveUrl(){
+  const q=new URLSearchParams();q.set("st",ST[S.si].name);if(dirOf()!=null)q.set("dir",BND[dirOf()][0]);else if(S.pl!=="all")q.set("pl",S.pl);
+  if(!S.live)q.set("t",hms(now()).replace("'",":"));
+  if(S.pass)q.set("pass","1");if(S.term)q.set("term","1");if(!S.dh)q.set("dh","0");if(!S.appr)q.set("appr","0");
+  if(S.sty!=="lcd")q.set("sty",S.sty);if(S.rows!=="auto")q.set("rows",S.rows);if(S.lang!=="ja")q.set("lang",S.lang);
+  history.replaceState(null,"","?"+q.toString());
+}
+function loadUrl(){
+  const q=new URLSearchParams(location.search);
+  const i=ST.findIndex(s=>s.name===q.get("st")||s.en===q.get("st"));S.si=i>=0?i:ST.findIndex(s=>s.name==="新犬村");
+  const p=q.get("pl");S.pl=p&&ST[S.si].plats.some(x=>x.p===p)?p:"all";
+  const di=BND.findIndex(b=>b[0]===q.get("dir")||b[1]===q.get("dir"));if(di>=0&&ST[S.si].dirs.includes(di))S.pl="d:"+di;
+  const t=q.get("t");if(t&&/^\d{1,2}:\d{2}(:\d{2})?$/.test(t)){const [h,m,s]=t.split(":").map(Number);let x=h*3600+m*60+(s||0);if(x<DAY0)x+=86400;S.live=false;S.base=x}
+  S.pass=q.get("pass")==="1";S.term=q.get("term")==="1";S.dh=q.get("dh")!=="0";S.appr=q.get("appr")!=="0";
+  const sty=q.get("sty");S.sty=sty==="led"?"led3":["led3","ledfc"].includes(sty)?sty:"lcd";      // led は以前の3色LEDの指定
+  const r=q.get("rows");S.rows=r&&/^[2-8]$/.test(r)?r:"auto";
+  const lg=q.get("lang");S.lang=["en","alt"].includes(lg)?lg:"ja";
+}
+
+// ---- このあとの発車
+function renderNext(t){
+  const l=CL(),en=l==="en",L=upcoming(16,t);
+  $("nxMeta").textContent=`${SN(ST[S.si].name,l)}${selName(l)}　${L2(hm(t)+" から","from "+hm(t))}`;
+  if(!L.length){$("nx").innerHTML=`<tbody><tr><td>${L2("このあとの発車はありません","No more trains")}</td></tr></tbody>`;return}
+  const th=en?["Time","Type","Destination","Track","Cars","Train","Stops / remarks"]:["時刻","種別","行先","番線","両数","列車番号","停車駅・備考"];
+  $("nx").innerHTML=`<thead><tr>${th.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>`+L.map(e=>{
+    const tr=e.t,cls=e.type==="pass"?"pass":tr.kind==="回送"?"dh":"";
+    const note=e.type==="pass"?L2("通過","Passes"):e.type==="arr"?L2(`当駅止まり（${tr.o}発）`,`Terminates here (from ${SN(tr.o,l)})`):(e.k===0?L2("当駅始発　","Starts here · "):"")+(stopText(tr,e.k,l)||"")+(splitText(tr,e.k,l)?"　"+splitText(tr,e.k,l):"");
+    return `<tr class="${cls}" data-ti="${e.ti}" data-k="${e.k}" tabindex="0"><td class="n">${hms(e.time)}${e.type==="arr"?L2(" 着"," arr"):""}</td><td><span class="chip ${tr.kind==="回送"?"o":""}" style="--c:${KC[tr.kind]}">${kn(tr.kind,l)}</span></td><td>${esc(tr.kind==="回送"?L2("回送","Not in service")+"（"+SN(tr.d,l)+"）":SN(tr.d,l))}</td><td class="n">${e.plat||"—"}</td><td class="n">${carsAt(tr,e.k)}</td><td class="n">${tr.no}</td><td class="lg" title="${esc(note)}">${esc(note)}</td></tr>`}).join("")+"</tbody>";
+  $("nx").querySelectorAll("tbody tr[data-ti]").forEach(r=>{const go=()=>openTrain(+r.dataset.ti,+r.dataset.k);r.onclick=go;r.onkeydown=ev=>{if(ev.key==="Enter")go()}});
+}
+
+// ---- 時刻表（発車だけ。回送・通過・当駅止まりは入れない）
+function abbr(names){const m={};names.forEach(n=>{let k=1;while(names.some(o=>o!==n&&o.slice(0,k)===n.slice(0,k))&&k<n.length)k++;m[n]=n.slice(0,k)});return m}
+function renderTT(t){
+  const l=CL(),all=multi();
+  const L=eventsAt(S.si).filter(e=>e.type==="dep"&&e.t.kind!=="回送"&&onPlat(e));
+  if(!L.length){$("tt").innerHTML=`<div class="m" style="grid-column:1/-1">${L2("この番線から発車する営業列車はありません","No trains depart from this track")}</div>`;$("ttLeg").textContent="";$("ttMeta").textContent="";return}
+  const cnt={};L.forEach(e=>cnt[e.t.d]=(cnt[e.t.d]||0)+1);
+  const dests=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]),main=dests[0],ab=abbr(dests.map(d=>SN(d,l)));
+  const A=d=>ab[SN(d,l)];
+  const nx=L.find(e=>e.time>=t),by={};
+  L.forEach(e=>{const h=Math.floor(e.time/3600);(by[h]=by[h]||[]).push(e)});
+  const ch=Math.floor(t/3600);
+  $("tt").innerHTML=Object.keys(by).map(Number).sort((a,b)=>a-b).map(h=>`<div class="h ${h===ch?"cur":""}">${h%24}</div><div class="m ${h===ch?"cur":""}">${by[h].map(e=>{
+    const tr=e.t,m=two(Math.floor(e.time%3600/60));
+    const tag=tr.kind==="各停"?"":`<span class="t" style="--c:${KC[tr.kind]}">${kn(tr.kind,l)[0]}</span>`;
+    return `<button type="button" class="mn ${e.time<t?"past":""} ${e===nx?"next":""}" data-ti="${e.ti}" data-k="${e.k}" title="${kn(tr.kind,l)} ${esc(SN(tr.d,l))} ${hms(e.time)}${e.plat?" "+L2(e.plat+"番線","Track "+e.plat):""}">${tag}${m}${all&&e.plat?`<sup>${e.plat}</sup>`:""}${tr.d!==main?`<span class="d">${esc(A(tr.d))}</span>`:""}</button>`}).join("")}</div>`).join("");
+  $("tt").querySelectorAll(".mn").forEach(b=>b.onclick=()=>openTrain(+b.dataset.ti,+b.dataset.k));
+  $("ttMeta").textContent=`${SN(ST[S.si].name,l)}${selName(l)}　${L2("発車 "+L.length+"本",L.length+" departures")}`;
+  $("ttLeg").innerHTML=`<span>${esc(L2(`無印の行先は${main}行`,`Unmarked: for ${SN(main,l)}`))}</span>`+dests.slice(1).map(d=>`<span>${esc(A(d))}＝${esc(SN(d,l))}</span>`).join("")
+    +`<span><span class="chip" style="--c:var(--k-rap)">${kn("快速",l)[0]}</span> ${kn("快速",l)}　<span class="chip" style="--c:var(--k-exp)">${kn("急行",l)[0]}</span> ${kn("急行",l)}　${L2("無印は各停","unmarked: Local")}</span>`+(all?`<span>${L2("右肩の数字は番線","small number: track")}</span>`:"");
+}
+
+// ---- 列車の詳細
+function openTrain(ti,k){
+  const t=TR[ti],l=CL();
+  $("dlT").innerHTML=`<span class="chip ${t.kind==="回送"?"o":""}" style="--c:${KC[t.kind]}">${kn(t.kind,l)}</span> ${esc(L2(t.d+"行","for "+SN(t.d,l)))}　<span style="font-family:var(--f-num);font-size:14px;color:var(--muted)">${t.no}</span>`;
+  $("dlS").textContent=`${SN(t.o,l)} ${hms(t.stops[0][2])}${L2("発","")} → ${SN(t.d,l)} ${hms(t.stops[t.stops.length-1][1])}${L2("着","")}　${t.co===t.cd?t.co:t.co+"→"+t.cd}${L2("両"," cars")}${t.split?L2(`（${t.split}で${t.cd<t.co?"分割":"併合"}）`,` (${t.cd<t.co?"splits":"joins"} at ${SN(t.split,l)})`):""}${t.extra?L2("　増発"," · extra"):""}`;
+  const th=L2(["駅","着","発","番線"],["Station","Arr","Dep","Track"]);
+  $("dlB").innerHTML=`<thead><tr>${th.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>`+t.stops.map((s,j)=>{
+    const ps=!s[3];
+    return `<tr class="${ps?"ps":""} ${j===k?"here":""}"><td>${esc(SN(ST[s[0]].name,l))}</td><td class="n">${ps?"":s[1]!=null?hms(s[1]):""}</td><td class="n">${ps?L2("レ ","pass ")+hms(s[1]):s[2]!=null?hms(s[2]):""}</td><td class="n">${s[4]||"—"}</td></tr>`}).join("")+"</tbody>";
+  $("dl").showModal();
+  const here=$("dlB").querySelector("tr.here");if(here)here.scrollIntoView({block:"center"});
+}
+
+// ---- 毎回の描き直し
+let lastMin=-1;
+function renderAll(){lastMin=-1;lastTick="";lastRows="";lastAp="";LED.rowsKey="";tick()}
+function tick(){
+  const t=now();
+  if(!S.live&&t>=DAY0+86400-1){S.play=false;S.base=DAY0+86400-1;syncCtrl()}
+  renderBoard(t);
+  const m=Math.floor(t/60);
+  if(m!==lastMin){lastMin=m;renderNext(t);renderTT(t);if(document.activeElement!==$("tm"))$("tm").value=`${two(Math.floor(t/3600)%24)}:${two(Math.floor(t%3600/60))}:${two(Math.floor(t)%60)}`}
+}
+// ---- 字の表を作る：盤面に出る字をすべて洗い出し、2つの盤面（縦16点・24点）の大きさで点にして、src/ledfont.py の受け口へ送る
+async function ledGenerate(port){
+  const sets={n:new Set(),b:new Set()};
+  const add=(s,big)=>{for(const c of String(s||""))sets[big&&/[\d:]/.test(c)?"b":"n"].add(c)};
+  for(let i=32;i<127;i++)sets.n.add(String.fromCharCode(i));
+  for(const c of "0123456789:")sets.b.add(c);
+  const pl0=S.pl;
+  ST.forEach((st,si)=>{for(const e of eventsAt(si))for(const l of ["ja","en"]){
+    const a=e.arr??e.time;
+    for(const t of [e.time-600,e.time-30,a+1,e.time+10]){
+      const r=rowData(e,t,l,true);
+      add(r.kt);add(r.tm+(r.suf?(l==="en"?" ":"")+r.suf:""),!r.suf);add(r.dst);add(r.plat,true);add(r.cars+r.unit,true);add(r.nt);add(r.sp);
+    }
+    add(infoText(e,l));if(e.plat)add(l==="en"?`Track ${e.plat}　`:`${e.plat}番線　`);
+    for(const pl of ["all",e.plat||"all"]){S.pl=pl;const ap=approachText(e,l);add(ap.main);add(ap.sub)}
+  }});
+  S.pl=pl0;
+  ["本日の電車は終了しました","Service has ended for today","この番線から発車する電車はありません","No departures from this track",
+   "本日の営業は終了しました。ご利用ありがとうございました。","Service has ended for today. Thank you for riding with us.","　　　","　◆　"].forEach(x=>add(x));
+  Object.values(KN).forEach(k=>k.forEach(x=>add(x)));
+  const link=document.createElement("link");link.rel="stylesheet";
+  link.href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300&family=Roboto+Condensed:wght@400&display=swap";
+  document.head.appendChild(link);await new Promise(r=>{link.onload=r;link.onerror=r});
+  const all=[...sets.n,...sets.b].join(""),lines=[];
+  for(const sty of ["led3","ledfc"]){
+    const cfg=LEDCFG[sty],N=cfg.N;LED.cfg=cfg;ledReset();
+    for(const gc of Object.values(cfg.gen))await document.fonts.load(ledFont(gc.f,N),all);
+    for(const [v,set] of Object.entries(sets))for(const ch of set){
+      const cls=v==="b"?"dig":/[ -~]/.test(ch)?"lat":"cjk",gc=cfg.gen[cls],m=ledMetric(gc,cls),g=ledGlyph(gc,m,ch,cls);
+      let w=Math.max(1,Math.round(v==="b"&&/\d/.test(ch)?ledGlyph(gc,m,"0",cls).adv:g.adv));      // 大きい数字は同じ幅
+      let lo=1e9,hi=-1;for(let j=0;j<N;j++)for(let x=0;x<g.gw;x++)if(g.mask[j*g.gw+x]){lo=Math.min(lo,x-g.ox);hi=Math.max(hi,x-g.ox)}
+      let sh=0;                                                                             // はみ出す点は送り幅の中へ寄せる
+      if(hi>=0){if(hi-lo+1>w)w=hi-lo+1;if(hi+sh>=w)sh=w-1-hi;if(lo+sh<0)sh=-lo}
+      const rows=[];for(let j=0;j<N;j++){let r="";for(let x=0;x<w;x++){const sx=x-sh+g.ox;r+=sx>=0&&sx<g.gw&&g.mask[j*g.gw+sx]?"#":"."}rows.push(r)}
+      lines.push([N,v,ch.codePointAt(0).toString(16).toUpperCase(),w,rows.join("/")].join(String.fromCharCode(9)));      // タブ区切り
+    }
+  }
+  await fetch(`http://127.0.0.1:${port}/`,{method:"POST",body:lines.join(String.fromCharCode(10))});      // 1字1行
+}
+buildCtrl();loadUrl();applyChrome();renderAll();
+if(LEDGEN)ledGenerate(LEDGEN);
+setInterval(tick,250);
+new ResizeObserver(()=>{LED.key="";lastTick="";lastRows="";lastAp=""}).observe($("board"));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{ledReset();lastTick="";lastRows="";lastAp=""});      // 字体が届いたら描き直す
+</script>
+</body>
+</html>
