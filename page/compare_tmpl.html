@@ -1,0 +1,359 @@
+<title>犬電 日中パターンの比較</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 案を横に並べて見比べる資料。見出し → 指標の表 → 発着の並び（1時間の帯）→ ダイヤグラム（案ごとに上下に並べ、横スクロールは連動）→ 列車ごとの待ち → 待避・乗り換え → 各案のページ */
+:root{
+  --bg:#F5F1E9; --panel:#FBF9F4; --ink:#35383B; --sub:#645044; --muted:#7B6A5E; --line:#DED2C4; --grid:rgba(222,210,196,.16);
+  --accent:#B89A82; --teal:#236962; --amber:#EAC05B; --brick:#963D39;
+  --k-loc:#35383B; --k-exp:#246BA3; --k-rap:#BE493B;
+  --dia-bg:#FFFDF8; --dia-grid:#ECE4D8; --dia-grid2:#DCCFBF; --dia-st:#E7DED2; --dia-major:#CDBDAA;
+  --f-ui:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054; --grid:rgba(222,210,196,.04);
+  --accent:#B89A82; --teal:#5BAEA3; --amber:#EAC05B; --brick:#D26B64;
+  --k-loc:#EDE6DA; --k-exp:#6FA8DA; --k-rap:#E67A6C;
+  --dia-bg:#303336; --dia-grid:#3A3E42; --dia-grid2:#474B50; --dia-st:#3C4044; --dia-major:#5A5E63; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054; --grid:rgba(222,210,196,.04);
+  --accent:#B89A82; --teal:#5BAEA3; --amber:#EAC05B; --brick:#D26B64;
+  --k-loc:#EDE6DA; --k-exp:#6FA8DA; --k-rap:#E67A6C;
+  --dia-bg:#303336; --dia-grid:#3A3E42; --dia-grid2:#474B50; --dia-st:#3C4044; --dia-major:#5A5E63; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--bg);color:var(--ink);font-family:var(--f-ui);line-height:1.7;
+  background-image:repeating-linear-gradient(45deg,var(--grid) 0 4px,transparent 4px 52px),repeating-linear-gradient(-45deg,var(--grid) 0 4px,transparent 4px 52px)}
+.wrap{max-width:1440px;margin:0 auto;padding-block:36px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
+header{display:flex;flex-direction:column;gap:10px;max-width:76ch}
+.eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--sub);font-weight:500}
+h1{font-size:clamp(26px,4vw,36px);font-weight:700;letter-spacing:.06em;margin:0;line-height:1.3;text-wrap:balance}
+h2{font-size:18px;margin:0;letter-spacing:.08em;text-wrap:balance}
+h3{font-size:14.5px;margin:0;letter-spacing:.04em}
+p{margin:0}
+.lead{color:var(--sub);font-size:14.5px}
+section{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;border-top:1.5px solid var(--ink);padding-top:10px}
+.sec-h .meta{font-size:12.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:26px;height:0;border-top:3px solid var(--c)}
+.sw.thin{border-top-width:1.5px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
+.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink);padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+select{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+.hint{font-size:12.5px;color:var(--muted)}
+.small{font-size:12.5px;color:var(--muted)}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);background:var(--panel)}
+.narrow{max-width:1040px}
+/* 指標の表 */
+table.cmp{border-collapse:collapse;width:100%;font-size:13.5px}
+table.cmp th,table.cmp td{padding:7px 14px;border-bottom:1px solid var(--line);text-align:right;vertical-align:baseline;white-space:nowrap}
+table.cmp th.l,table.cmp td.l{text-align:left;white-space:normal;min-width:200px}
+table.cmp thead th{font-size:14px;font-weight:700;background:var(--ink);color:var(--bg);border-bottom:0}
+table.cmp thead th .f{display:block;font-family:var(--f-num);font-size:10.5px;font-weight:400;opacity:.75;letter-spacing:0}
+table.cmp td{font-family:var(--f-num)}
+table.cmp td.l{font-family:var(--f-ui)}
+table.cmp td.l .s{display:block;font-size:11.5px;color:var(--muted);line-height:1.4}
+table.cmp tr.big td{font-size:20px;font-weight:500;padding-block:10px}
+table.cmp tr.big td.l{font-size:14.5px;font-weight:700}
+table.cmp td.best{color:var(--teal);font-weight:500;box-shadow:inset 3px 0 0 var(--teal)}
+table.cmp tr.cap td{background:color-mix(in srgb,var(--line) 45%,transparent);font-family:var(--f-ui);font-size:12px;color:var(--sub);text-align:left;letter-spacing:.06em;padding-block:4px}
+/* 発着の帯 */
+.strip-g{display:flex;flex-direction:column;gap:6px;min-width:680px;padding:12px 14px}
+.strip-g+.strip-g{border-top:1px solid var(--line)}
+.strip-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center}
+.strip-row .pl{font-size:13px;font-weight:700;line-height:1.35}
+.strip-row .pl span{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
+.strip{position:relative;background:var(--dia-bg);border:1px solid var(--line);padding:0 22px}
+.lane{position:relative;height:21px;background-image:linear-gradient(to right,var(--dia-grid2) 1px,transparent 1px);background-size:25% 100%;border-right:1px solid var(--dia-grid2)}
+.lane+.lane{border-top:1px dashed var(--dia-grid)}
+.tk{position:absolute;top:2px;transform:translateX(-50%);font-family:var(--f-num);font-size:11px;line-height:16px;padding:0 4px;border-radius:2px;color:#fff;background:var(--c);white-space:nowrap}
+.tk sup{font-size:8px}
+:root[data-theme="dark"] .tk{color:#2E3134}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tk{color:#2E3134}}
+.axis{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.axis div:last-child{display:flex;justify-content:space-between;padding:0 10px}
+/* ダイヤグラム */
+.dblk{display:flex;flex-direction:column;gap:4px}
+.dh{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.dh b{font-size:14.5px;letter-spacing:.04em}
+.dia{display:grid;grid-template-columns:88px minmax(0,1fr);border:1px solid var(--line);background:var(--dia-bg);border-radius:3px}
+.dia .lab{position:relative;border-right:1px solid var(--line);background:var(--panel)}
+.dia .lab span{position:absolute;left:0;right:0;transform:translateY(-50%);font-size:11px;text-align:right;padding:0 8px 0 4px;color:var(--sub);line-height:1.1;white-space:nowrap}
+.dia .lab span.maj{color:var(--ink);font-weight:700;font-size:12px}
+.dia .pane{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative}
+.dia canvas{display:block;cursor:pointer}
+.pop{position:absolute;z-index:5;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.14);border-radius:4px;padding:10px 12px;font-size:12.5px;max-width:300px}
+.pop h4{margin:0 0 4px;font-size:13.5px}
+.pop .close{position:absolute;right:6px;top:4px;border:0;background:transparent;color:var(--muted);font-size:16px;cursor:pointer}
+.pop table{border-collapse:collapse;font-family:var(--f-num);font-size:12px}
+.pop td{padding:1px 8px 1px 0;white-space:nowrap}
+.pop td:first-child{font-family:var(--f-ui)}
+.pop .pass td{color:var(--muted)}
+.pop .scroll{max-height:280px;overflow:auto}
+.wait{color:var(--brick)}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:2px;color:#fff;background:var(--c);line-height:1.6}
+:root[data-theme="dark"] .chip{color:#2E3134}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip{color:#2E3134}}
+/* 列車ごとの待ち */
+table.wt{border-collapse:collapse;width:100%;font-size:13px}
+table.wt th,table.wt td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.wt thead th{background:var(--ink);color:var(--bg);font-weight:700;position:sticky;top:0}
+table.wt td.l{white-space:nowrap}
+table.wt td .dep{font-family:var(--f-num);color:var(--muted);margin-right:8px;white-space:nowrap}
+table.wt td .none{color:var(--muted)}
+table.wt td.na{color:var(--muted)}
+table.wt tr.dir td{background:color-mix(in srgb,var(--line) 45%,transparent);font-size:12px;color:var(--sub);letter-spacing:.06em;padding-block:4px}
+table.wt tfoot td{font-weight:700;border-top:1.5px solid var(--ink)}
+table.wt tfoot td.n{font-family:var(--f-num);font-weight:500}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px 28px;align-items:start}
+.cols>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--sub)}
+ul.plain b{color:var(--ink);font-weight:500}
+a{color:var(--teal)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">犬村電気鉄道　運転計画（案）　平日日中</div>
+  <h1>日中パターンの比較</h1>
+  <p class="lead" id="lead"></p>
+  <div class="legend" aria-label="種別の凡例">
+    <span><i class="sw" style="--c:var(--k-rap)"></i>快速</span>
+    <span><i class="sw" style="--c:var(--k-exp)"></i>急行</span>
+    <span><i class="sw thin" style="--c:var(--k-loc)"></i>各停</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-h"><h2>指標</h2><span class="meta">10時台に始発駅を出た列車（1時間ぶん）の合計です。緑の印は、その行でいちばん良い案です。</span></div>
+  <div class="scrollx narrow"><table class="cmp" id="cmp"></table></div>
+  <p class="small" id="formula"></p>
+</section>
+
+<section>
+  <div class="sec-h"><h2>発車・到着の並び</h2><span class="meta">1時間の中で何分に出るか・着くかを、種別ごとの段に並べています。毎時同じ並びです。</span></div>
+  <div class="controls"><label class="hint" for="stSel">駅</label><select id="stSel"></select></div>
+  <div class="scrollx" id="strips"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>ダイヤグラム</h2><span class="meta">10:00〜11:30。横軸が時刻、縦軸が軒屋からの距離です。横スクロールは上下の案で連動します。線をクリックすると停車駅と時刻が出ます。</span></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="表示する案" id="patSeg"></div>
+    <div class="seg" role="group" aria-label="表示する路線" id="lineSeg">
+      <button type="button" data-l="main" aria-pressed="true">本線・奥雲線</button><button type="button" data-l="hasu" aria-pressed="false">蓮木線</button>
+    </div>
+    <div class="seg" role="group" aria-label="拡大縮小"><button type="button" id="zo">縮小</button><button type="button" id="zi">拡大</button></div>
+    <span class="hint" id="zoomlab"></span>
+  </div>
+  <div id="dias" style="display:flex;flex-direction:column;gap:18px"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>列車ごとの待ち</h2><span class="meta">待避・抑止で通常より長く止まる駅と時間です。3分以上は赤字。同じ区間の列車は、1時間の中で出る順に並べています。</span></div>
+  <div class="scrollx" style="max-height:640px;overflow:auto"><table class="wt" id="wt"></table></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>待避</h2><span class="meta">どの列車が、どの駅で、何に抜かれるか。</span></div>
+  <div class="cols" id="ov"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>支線の乗り換え待ち</h2><span class="meta">蓮木線内各停は学院前、奥雲線各停は新狛野（旧案は犬塚）での本線との乗り換えです。</span></div>
+  <div class="cols" id="xf"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>各案のファイル</h2></div>
+  <div class="cols" id="files"></div>
+</section>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent),P=D.pats;
+const $=id=>document.getElementById(id);
+const KC={"快速":"--k-rap","急行":"--k-exp","各停":"--k-loc"};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const ms=s=>{s=Math.round(s);const m=Math.floor(s/60),r=s%60;return m?(r?`${m}分${String(r).padStart(2,'0')}秒`:`${m}分`):`${r}秒`};
+const mmss=s=>{const m=Math.floor(s/60),r=s%60;return String(m).padStart(2,'0')+(r?`<sup>${String(r).padStart(2,'0')}</sup>`:'')};
+const fmtP=t=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return `${h}:${String(m).padStart(2,'0')}`+(s?`'${String(s).padStart(2,'0')}`:'')};
+const num=v=>v.toLocaleString('ja-JP',{maximumFractionDigits:1});
+$('lead').textContent=`${P.map(p=>p.label).join('・')}を、同じ判定と同じ評価で並べています。どの案も15分ごとに各停・急行・快速が1本ずつで、違うのは発車の位置と、待避・抑止の入れ方です。`;
+
+// ---- 指標
+const off=(p,dir,j)=>{const a=p[dir];return a?a[j]:null};
+const brv=(p,j)=>p.br?Number(p.br.split(',')[j]):null;
+const ROWS=[
+  {l:"評価",s:"小さいほど良い",get:p=>p.m["評価"],f:num,b:-1,big:1},
+  {l:"待ち",s:"停車延長と始発の繰り下げ。全列車",get:p=>p.m["待ち秒"],f:ms,b:-1},
+  {l:"　うち急行・快速",get:p=>p.m["優等の待ち秒"],f:ms,b:-1},
+  {l:"待避",s:"列車×駅",get:p=>p.m["待避"],f:v=>v+"回",b:-1},
+  {l:"始発・終着の詰まり",s:"目安の間隔に足りない秒の合計",get:p=>p.m["詰まり"],f:v=>Math.round(v)+"秒",b:-1},
+  {l:"同じ種別の間隔のずれ",get:p=>p.m["同種別のずれ"],f:v=>v+"秒",b:-1},
+  {l:"支線の乗り換え待ち",s:"支線各停10本の合計",get:p=>p.m["乗換待ち秒"],f:ms,b:-1},
+  {l:"競合",s:"9:30〜13:00",get:p=>p.m["競合"],f:v=>v+"件",b:-1},
+  {cap:"発車・到着の最小間隔"},
+  {l:"軒屋 発車",get:p=>p.gap["軒屋発"],f:ms,b:1},
+  {l:"軒屋 到着",get:p=>p.gap["軒屋着"],f:ms,b:1},
+  {l:"犬塚 発車",get:p=>p.gap["犬塚発"],f:ms,b:1},
+  {l:"犬塚 到着",get:p=>p.gap["犬塚着"],f:ms,b:1},
+  {cap:"発車の位置（15分枠の中で）"},
+  {l:"下り 急行",s:"軒屋で各停の何分後か",get:p=>off(p,"down",1)-off(p,"down",0),f:ms},
+  {l:"下り 快速",get:p=>off(p,"down",2)-off(p,"down",0),f:ms},
+  {l:"上り 各停",s:"新犬村の基準時刻から",get:p=>off(p,"up",0),f:ms},
+  {l:"上り 急行",get:p=>off(p,"up",1),f:ms},
+  {l:"上り 快速",get:p=>off(p,"up",2),f:ms},
+  {cap:"支線の時分差"},
+  {l:"蓮木線内各停 下り",s:"本線各停の学院前着 → 線内各停の発車",get:p=>brv(p,0),f:ms},
+  {l:"蓮木線内各停 上り",s:"線内各停の学院前着 → 本線各停の学院前着",get:p=>brv(p,1),f:ms},
+  {l:"奥雲線各停 下り",s:"快速の新狛野発 → 奥雲線各停の発車",get:p=>brv(p,2),f:ms},
+  {l:"奥雲線各停 上り",s:"奥雲線各停の新狛野着 → 快速の新狛野着",get:p=>brv(p,3),f:ms},
+];
+$('cmp').innerHTML=`<thead><tr><th class="l"></th>${P.map(p=>`<th>${p.label}<span class="f">${p.file}</span></th>`).join('')}</tr></thead><tbody>`+ROWS.map(r=>{
+  if(r.cap)return `<tr class="cap"><td colspan="${P.length+1}">${r.cap}</td></tr>`;
+  const vs=P.map(r.get),ok=vs.filter(v=>v!=null&&!Number.isNaN(v));
+  const best=r.b&&ok.length>1&&new Set(ok).size>1?(r.b<0?Math.min(...ok):Math.max(...ok)):null;
+  return `<tr class="${r.big?'big':''}"><td class="l">${r.l}${r.s?`<span class="s">${r.s}</span>`:''}</td>${vs.map(v=>v==null||Number.isNaN(v)?'<td>—</td>':`<td class="${v===best?'best':''}">${r.f(v)}</td>`).join('')}</tr>`}).join('')+'</tbody>';
+$('formula').textContent=`評価 ＝ 待ち ＋ ${D.w["優等"]}×急行・快速の待ち ＋ ${D.w["待避"]}×待避の回数 ＋ ${D.w["詰まり"]}×詰まり ＋ 間隔のずれ ＋ ${D.w["乗換"]}×乗り換え待ち（単位は秒。grid2.py と同じ重み）`;
+
+// ---- 発着の帯
+const stations=[];P.forEach(p=>Object.keys(p.ev).forEach(k=>{const s=k.slice(0,-1);if(!stations.includes(s))stations.push(s)}));
+const pref=["軒屋","犬塚","蓮木市","学院前","秋田台","高島","新狛野","奥雲温泉"];
+stations.sort((a,b)=>(pref.indexOf(a)+1||99)-(pref.indexOf(b)+1||99));
+$('stSel').innerHTML=stations.map(s=>`<option>${s}</option>`).join('');
+function strips(){
+  const st=$('stSel').value;
+  $('strips').innerHTML=["発","着"].map(k=>{
+    const key=st+k; if(!P.some(p=>p.ev[key]))return '';
+    const kinds=["快速","急行","各停"].filter(kd=>P.some(p=>(p.ev[key]||[]).some(e=>e[1]===kd)));
+    return `<div class="strip-g"><h3>${st}　${k==="発"?"発車（この駅が始発の列車）":"到着（この駅が終着の列車）"}</h3>`+P.map(p=>{
+      const L=p.ev[key]||[];
+      const lanes=kinds.map(kd=>`<div class="lane">${L.filter(e=>e[1]===kd).map(e=>`<span class="tk" style="left:${e[0]/36}%;--c:var(${KC[kd]})" title="${kd}${e[2]?'（'+e[2]+'）':''} ${e[3]}${k==="発"?"行":"発"}">${mmss(e[0])}</span>`).join('')}</div>`).join('');
+      return `<div class="strip-row"><div class="pl">${p.label}<span>${L.length}本${p.gap[key]?'・最小 '+ms(p.gap[key]):''}</span></div><div class="strip">${lanes}</div></div>`}).join('')
+      +`<div class="axis"><div></div><div><span>:00</span><span>:15</span><span>:30</span><span>:45</span><span>:00</span></div></div></div>`}).join('');
+}
+$('stSel').onchange=strips;
+
+// ---- ダイヤグラム
+let line="main",pxMin=8,show=new Set(P.map((_,i)=>i).filter(i=>i>=P.length-2)),sel=null,panes=[],pop=null;
+const T0=D.t0,T1=D.t1,LINES={main:{st:D.main,h:600},hasu:{st:D.hasu,h:270}};
+$('patSeg').innerHTML=P.map((p,i)=>`<button type="button" data-i="${i}" aria-pressed="${show.has(i)}">${p.label}</button>`).join('');
+function trainPts(t,L){
+  const st=LINES[L].st,km={};st.forEach(s=>km[s[0]]=s[1]);
+  const pts=[],want=(L==="main")?"M":"H";
+  const usesL=Object.entries(t.line).some(([s,v])=>s!=="学院前"&&v===want);
+  for(const r of t.rows){
+    const onL=t.line[r[0]]===want||(r[0]==="学院前"&&usesL);
+    if(!onL){ if(pts.length&&pts[pts.length-1]!==null)pts.push(null); continue;}
+    const k=km[r[0]]; if(k===undefined)continue;
+    if(r[1]!=null)pts.push([r[1],k]);
+    if(r[2]!=null&&r[2]!==r[1])pts.push([r[2],k]);
+    else if(r[1]==null&&r[2]!=null)pts.push([r[2],k]);
+  }
+  return pts;
+}
+function path(g,sc){g.beginPath();let pen=false;for(const p of sc){if(!p){pen=false;continue;}if(!pen){g.moveTo(p[0],p[1]);pen=true;}else g.lineTo(p[0],p[1]);}}
+function draw(p,cv,lab){
+  const L=LINES[line],st=L.st,H=L.h,top=26,bot=10,maxKm=st[st.length-1][1];
+  const W=Math.round((T1-T0)/60*pxMin)+48,dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=(H+top+bot)*dpr;cv.style.width=W+'px';cv.style.height=(H+top+bot)+'px';lab.style.height=(H+top+bot)+'px';
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle=css('--dia-bg');g.fillRect(0,0,W,H+top+bot);
+  const X=t=>24+(t-T0)/60*pxMin,Y=k=>top+k/maxKm*H;
+  const step=pxMin>=10?2:pxMin>=5?5:10;
+  for(let t=Math.ceil(T0/60/step)*step*60;t<=T1;t+=step*60){
+    const m=(t/60)%60,x=X(t);
+    g.strokeStyle=m===0?css('--dia-major'):(m%10===0?css('--dia-grid2'):css('--dia-grid'));
+    g.lineWidth=m===0?1.4:1;g.beginPath();g.moveTo(x,top);g.lineTo(x,top+H);g.stroke();
+    if(m%10===0){g.fillStyle=m===0?css('--ink'):css('--muted');g.font=(m===0?'700 12px ':'11px ')+css('--f-num');g.textAlign='center';g.fillText(m===0?`${t/3600}:00`:String(m).padStart(2,'0'),x,top-9);}
+  }
+  for(const s of st){g.strokeStyle=s[2]?css('--dia-major'):css('--dia-st');g.lineWidth=s[2]?1:0.7;g.beginPath();g.moveTo(0,Y(s[1]));g.lineTo(W,Y(s[1]));g.stroke();}
+  if(line==="main"){for(const [a,b] of D.single){g.fillStyle='rgba(184,154,130,.10)';g.fillRect(0,Y(a),W,Y(b)-Y(a));}}
+  const cache=[],order=["各停","急行","快速"];
+  for(const t of p.trains.slice().sort((a,b)=>order.indexOf(a.kind)-order.indexOf(b.kind))){
+    const pts=trainPts(t,line); if(pts.filter(q=>q).length<2)continue;
+    const sc=pts.map(q=>q&&[X(q[0]),Y(q[1])]);cache.push({t,sc});
+    g.strokeStyle=css(KC[t.kind]);g.lineWidth=t.kind==="各停"?1.1:1.8;path(g,sc);g.stroke();
+  }
+  if(sel&&sel.p===p){const c=cache.find(c=>c.t.id===sel.id);if(c){g.strokeStyle=css('--teal');g.lineWidth=3;path(g,c.sc);g.stroke();}}
+  // 駅名：主要駅は必ず、ほかは重ならない所だけ出す
+  const placed=st.filter(s=>s[2]).map(s=>Y(s[1])),names=st.filter(s=>s[2]);
+  for(const s of st){if(s[2])continue;const y=Y(s[1]);if(placed.every(q=>Math.abs(q-y)>=12)){placed.push(y);names.push(s);}}
+  lab.innerHTML=names.map(s=>`<span class="${s[2]?'maj':''}" style="top:${Y(s[1])}px">${s[0]}</span>`).join('');
+  return cache;
+}
+function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let u=l?((px-a[0])*dx+(py-a[1])*dy)/l:0;u=Math.max(0,Math.min(1,u));return Math.hypot(px-(a[0]+u*dx),py-(a[1]+u*dy));}
+function closePop(){if(pop){pop.remove();pop=null;}}
+function showPop(pane,t,x,y){
+  closePop();pop=document.createElement('div');pop.className='pop';
+  const rows=t.rows.map(r=>{const stop=r[3];const tm=stop?`${r[1]!=null&&r[0]!==t.o?fmtP(r[1]):''}${r[1]!=null&&r[2]!=null&&r[0]!==t.o?' → ':''}${r[2]!=null?fmtP(r[2]):''}`:'レ';return `<tr class="${stop?'':'pass'}"><td>${r[0]}</td><td>${tm}</td><td>${r[4]?`<span class="wait">+${ms(r[4])}</span>`:''}</td></tr>`}).join('');
+  pop.innerHTML=`<button class="close" type="button" aria-label="閉じる">×</button><h4><span class="chip" style="--c:var(${KC[t.kind]})">${t.kind}</span> ${t.d}行</h4><div class="small">${t.o} ${fmtP(t.rows[0][2])}発${t.note?'・'+t.note:''}</div><div class="scroll"><table>${rows}</table></div>`;
+  pane.appendChild(pop);
+  const pw=300;let left=x+pane.scrollLeft+12;if(left+pw>pane.scrollLeft+pane.clientWidth)left=x+pane.scrollLeft-pw-12;
+  pop.style.left=Math.max(pane.scrollLeft+4,left)+'px';pop.style.top=Math.max(4,Math.min(y-40,pane.clientHeight-330))+'px';
+  pop.querySelector('.close').onclick=()=>{sel=null;drawAll();};
+}
+function drawAll(){
+  const keep=panes.length?panes[0].scrollLeft:0;
+  closePop();$('dias').innerHTML='';panes=[];
+  P.forEach((p,i)=>{
+    if(!show.has(i))return;
+    const blk=document.createElement('div');blk.className='dblk';
+    blk.innerHTML=`<div class="dh"><b>${p.label}</b><span class="hint">評価 ${num(p.m["評価"])}・待避 ${p.m["待避"]}回・待ち ${ms(p.m["待ち秒"])}</span></div><div class="dia"><div class="lab"></div><div class="pane"><canvas></canvas></div></div>`;
+    $('dias').appendChild(blk);
+    const pane=blk.querySelector('.pane'),cv=blk.querySelector('canvas'),cache=draw(p,cv,blk.querySelector('.lab'));
+    pane.addEventListener('scroll',()=>{for(const o of panes)if(o!==pane&&Math.abs(o.scrollLeft-pane.scrollLeft)>1)o.scrollLeft=pane.scrollLeft;});
+    cv.addEventListener('click',e=>{
+      const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let best=null;
+      for(const c of cache){for(let k=1;k<c.sc.length;k++){const a=c.sc[k-1],b=c.sc[k];if(!a||!b)continue;const d=segDist(x,y,a,b);if(d<7&&(!best||d<best.d))best={d,t:c.t};}}
+      if(best){sel={p,id:best.t.id};const sl=pane.scrollLeft;drawAll();const np=panes[[...show].sort((a,b)=>a-b).indexOf(i)];panes.forEach(o=>o.scrollLeft=sl);showPop(np,best.t,x-(sl-np.scrollLeft),y);}
+      else if(sel){sel=null;drawAll();}
+    });
+    panes.push(pane);
+  });
+  panes.forEach(o=>o.scrollLeft=keep);
+  $('zoomlab').textContent=show.size?`1分＝${pxMin}px`:'表示する案を選んでください';
+}
+$('patSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;show.has(i)?show.delete(i):show.add(i);b.setAttribute('aria-pressed',show.has(i));sel=null;drawAll();};
+document.querySelectorAll('#lineSeg button').forEach(b=>b.onclick=()=>{line=b.dataset.l;document.querySelectorAll('#lineSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));sel=null;drawAll();});
+function zoom(f){const pane=panes[0];const c=pane?(pane.scrollLeft+pane.clientWidth/2)/pxMin:0;pxMin=Math.max(3,Math.min(24,Math.round(pxMin*f*2)/2));drawAll();if(pane)panes.forEach(o=>o.scrollLeft=c*pxMin-o.clientWidth/2);}
+$('zi').onclick=()=>zoom(1.5);$('zo').onclick=()=>zoom(1/1.5);
+
+// ---- 列車ごとの待ち
+(function(){
+  const KO=["快速","急行","各停","各停（線内）","各停（奥雲線）"],keys=[],info={};
+  P.forEach(p=>p.waits.forEach(w=>{if(!info[w.key]){info[w.key]=w;keys.push(w.key);}}));
+  const sk=k=>{const a=k.split('|');return [a[0]==="D"?0:1,KO.indexOf(a[1]),a[2],a[3],+a[4]]};
+  keys.sort((a,b)=>{const x=sk(a),y=sk(b);for(let i=0;i<5;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
+  const multi={};keys.forEach(k=>{const g=k.slice(0,k.lastIndexOf('|'));multi[g]=(multi[g]||0)+1});
+  let last=null;
+  const body=keys.map(k=>{
+    const w0=info[k],g=k.slice(0,k.lastIndexOf('|')),dir=k[0];
+    const head=dir!==last?`<tr class="dir"><td colspan="${P.length+1}">${dir==="D"?"下り":"上り"}</td></tr>`:'';last=dir;
+    const cells=P.map(p=>{const w=p.waits.find(x=>x.key===k);if(!w)return '<td class="na">—</td>';
+      const parts=[];if(w.shift)parts.push(`始発繰り下げ ${ms(w.shift)}`);w.holds.forEach(h=>parts.push(`<span class="${h[1]>=180?'wait':''}">${h[0]} ${ms(h[1])}</span>`));
+      return `<td><span class="dep">${w.dep}発</span>${parts.length?parts.join('、'):'<span class="none">待ちなし</span>'}</td>`}).join('');
+    return head+`<tr><td class="l">${w0.name.replace(/^(下り|上り)　/,'')}${multi[g]>1?`<span class="small">　${w0.nth}本目</span>`:''}</td>${cells}</tr>`}).join('');
+  $('wt').innerHTML=`<thead><tr><th>列車</th>${P.map(p=>`<th>${p.label}</th>`).join('')}</tr></thead><tbody>${body}</tbody><tfoot><tr><td>合計</td>${P.map(p=>`<td class="n">${ms(p.waits.reduce((a,w)=>a+w.sum,0))}</td>`).join('')}</tr></tfoot>`;
+})();
+
+// ---- 待避・乗り換え・ファイル
+$('ov').innerHTML=P.map(p=>`<div><h3>${p.label}　<span class="small">${p.m["待避"]}回（抜かれる組み合わせ ${p.ov.length}）</span></h3><ul class="plain">${p.ov.map(o=>`<li>${o[0]} ${o[1]} が <b>${o[2]}</b> で ${o[3]}${o[4]}に抜かれる</li>`).join('')}</ul></div>`).join('');
+$('xf').innerHTML=P.map(p=>`<div><h3>${p.label}　<span class="small">合計 ${ms(p.m["乗換待ち秒"])}</span></h3><ul class="plain">${p.xf.map(x=>`<li>${x[0]} ${x[1]}：${x[2]}で <b>${ms(x[3])}</b></li>`).join('')}</ul></div>`).join('');
+$('files').innerHTML=P.map(p=>`<div><h3>${p.label}</h3><p class="small">data/${p.file}${p.br?`<br>支線の時分差 BR=${p.br}`:''}<br>1時間の本数 ${p.n}本</p>${p.page?`<p><a href="${p.page}">この案だけの詳しいページ（駅の時刻表・列車一覧）</a></p>`:''}</div>`).join('');
+strips();drawAll();
+window.addEventListener('resize',()=>drawAll());
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>drawAll());}catch(e){}
+new MutationObserver(()=>drawAll()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>

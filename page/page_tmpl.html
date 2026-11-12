@@ -1,0 +1,438 @@
+<title>犬電 朝ダイヤ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 運転計画の資料。見出し → 要点 → 横に続くダイヤグラム（駅名固定）→ 駅時刻表 → 列車一覧 → 増発・回送・滞泊 → 前提 */
+:root{
+  --bg:#F5F1E9; --panel:#FBF9F4; --ink:#35383B; --sub:#645044; --muted:#7B6A5E; --line:#DED2C4; --grid:rgba(222,210,196,.16);
+  --accent:#B89A82; --teal:#236962; --amber:#EAC05B; --brick:#963D39;
+  --k-loc:#35383B; --k-exp:#246BA3; --k-rap:#BE493B; --k-dh:#9A8B7E; --k-fg:#FFFFFF;
+  --dia-bg:#FFFDF8; --dia-grid:#ECE4D8; --dia-grid2:#DCCFBF; --dia-st:#E7DED2; --dia-major:#CDBDAA;
+  --f-ui:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054; --grid:rgba(222,210,196,.04);
+  --accent:#B89A82; --teal:#5BAEA3; --amber:#EAC05B; --brick:#D26B64;
+  --k-loc:#EDE6DA; --k-exp:#6FA8DA; --k-rap:#E67A6C; --k-dh:#A99D92; --k-fg:#23262A;
+  --dia-bg:#303336; --dia-grid:#3A3E42; --dia-grid2:#474B50; --dia-st:#3C4044; --dia-major:#5A5E63; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054; --grid:rgba(222,210,196,.04);
+  --accent:#B89A82; --teal:#5BAEA3; --amber:#EAC05B; --brick:#D26B64;
+  --k-loc:#EDE6DA; --k-exp:#6FA8DA; --k-rap:#E67A6C; --k-dh:#A99D92; --k-fg:#23262A;
+  --dia-bg:#303336; --dia-grid:#3A3E42; --dia-grid2:#474B50; --dia-st:#3C4044; --dia-major:#5A5E63; color-scheme:dark}
+*{box-sizing:border-box}
+body{background-color:var(--bg);color:var(--ink);font-family:var(--f-ui);line-height:1.7;
+  background-image:repeating-linear-gradient(45deg,var(--grid) 0 4px,transparent 4px 52px),repeating-linear-gradient(-45deg,var(--grid) 0 4px,transparent 4px 52px)}
+.wrap{max-width:1440px;margin:0 auto;padding-block:36px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
+header{display:flex;flex-direction:column;gap:10px;max-width:72ch}
+.eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--sub);font-weight:500}
+h1{font-size:clamp(26px,4vw,36px);font-weight:700;letter-spacing:.06em;margin:0;line-height:1.3;text-wrap:balance}
+h2{font-size:18px;margin:0;letter-spacing:.08em;text-wrap:balance}
+h3{font-size:14.5px;margin:0;letter-spacing:.04em}
+p{margin:0}
+.lead{color:var(--sub);font-size:14.5px}
+.links{margin:8px 0 0;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 18px}
+.links a{color:var(--teal);font-weight:700;text-underline-offset:3px}
+section{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;border-top:1.5px solid var(--ink);padding-top:10px}
+.sec-h .meta{font-size:12.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:26px;height:0;border-top:3px solid var(--c)}
+.sw.thin{border-top-width:1.5px}
+.sw.dash{border-top-style:dashed;border-top-width:2px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.fact{background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.fact dt{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.fact dd{margin:0;font-size:15px;font-weight:700}
+.fact dd .n{font-family:var(--f-num);font-weight:500;font-size:20px;letter-spacing:-.01em;margin-right:2px}
+.fact .s{font-size:12.5px;color:var(--sub);font-weight:400}
+.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
+.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink);padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.hint{font-size:12.5px;color:var(--muted)}
+.dia{display:grid;grid-template-columns:88px minmax(0,1fr);border:1px solid var(--line);background:var(--dia-bg);border-radius:3px}
+.dia .lab{position:relative;border-right:1px solid var(--line);background:var(--panel)}
+.dia .lab button{position:absolute;left:0;right:0;transform:translateY(-50%);font:inherit;font-size:11.5px;text-align:right;padding:0 8px 0 4px;border:0;background:transparent;color:var(--sub);cursor:pointer;line-height:1.2;white-space:nowrap}
+.dia .lab button.maj{color:var(--ink);font-weight:700;font-size:12px}
+.dia .lab button.sel{color:var(--teal)}
+.dia .lab button:hover{color:var(--teal)}
+.dia .pane{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative}
+.dia canvas{display:block}
+/* 列車の詳細：モーダル（<dialog>）。時刻表・ダイヤグラム・駅の時刻表のどこで列車を選んでも同じ窓を開く。画面は動かさない */
+dialog.tm{border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);padding:0;width:min(92vw,440px);max-height:min(88vh,760px);box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden}
+dialog.tm[open]{display:flex;flex-direction:column}
+dialog.tm::backdrop{background:rgba(20,22,24,.5)}
+.tm .tm-h{display:flex;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.tm .tm-h h4{margin:0;font-size:16px;line-height:1.4;flex:1;min-width:0}
+.tm .tm-h .chip{font-size:12px;margin-right:6px;vertical-align:2px}
+.tm .tm-h .tno{font-family:var(--f-num);font-size:13px;font-weight:500;color:var(--muted);margin-left:8px;border:1px solid var(--line);border-radius:3px;padding:0 6px}
+.tm .tm-h .small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:2px}
+.tm .close{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:4px}
+.tm .close:hover{background:color-mix(in srgb,var(--line) 60%,transparent)}
+.tm .tm-b{overflow:auto;padding:4px 16px 8px;flex:1;min-height:0}
+.tm table{border-collapse:collapse;font-family:var(--f-num);font-size:13px;width:100%}
+.tm thead th{position:sticky;top:0;background:var(--panel);font-family:var(--f-ui);font-weight:500;font-size:11.5px;color:var(--muted);text-align:right;padding:6px 8px 4px;border-bottom:1px solid var(--line)}
+.tm thead th:first-child{text-align:left;padding-left:0}
+.tm td{padding:2px 8px;white-space:nowrap;text-align:right;border-bottom:1px solid color-mix(in srgb,var(--line) 50%,transparent)}
+.tm td:first-child{font-family:var(--f-ui);text-align:left;padding-left:0}
+.tm tr.maj td:first-child{font-weight:700}
+.tm .pass td{color:var(--muted)}
+.tm .wait{color:var(--brick);font-weight:700}
+.tm td.trk{color:var(--sub)}
+.tm .tm-f{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:10px 16px 14px;border-top:1px solid var(--line)}
+.tm .tm-f button{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink);cursor:pointer}
+.tm .tm-f button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start}
+.cols>*{min-width:0}
+.board{border:1px solid var(--line);background:var(--panel)}
+.board h3{padding:8px 12px;background:var(--ink);color:var(--bg);font-size:13.5px;font-weight:500;letter-spacing:.06em}
+.board table{border-collapse:collapse;width:100%}
+.board td{border-bottom:1px solid var(--line);padding:4px 8px;vertical-align:top}
+.board td.h{width:40px;text-align:center;font-family:var(--f-num);font-weight:500;background:color-mix(in srgb,var(--line) 45%,transparent)}
+.mins{display:flex;flex-wrap:wrap;gap:2px 10px}
+.mn{font-family:var(--f-num);font-size:14px;display:inline-flex;align-items:baseline;gap:2px;cursor:pointer;border:0;background:transparent;color:var(--ink);padding:0}
+.mn:hover{color:var(--teal)}
+.mn .t{font-family:var(--f-ui);font-size:10px;font-weight:700;padding:0 3px;border-radius:2px;color:var(--k-fg);background:var(--c);line-height:1.5}
+.mn .d{font-family:var(--f-ui);font-size:10.5px;color:var(--sub)}
+.mn.x{text-decoration:underline;text-decoration-color:var(--amber);text-decoration-thickness:2px;text-underline-offset:3px}
+.mn sup{font-size:9px;color:var(--muted)}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);background:var(--panel)}
+/* 種別の札（.chip・.mn .t）の文字色は --k-fg：明るい画面では白、暗い画面では地色（--k-*）が明るくなるので濃い色にする（白のままだと各停の札が読めなかった） */
+/* 列車一覧：OuDia のような時刻表（縦に駅、横に列車）。駅名の2列と見出しの行は固定。どの行も「駅名・着発・列車…」の同じ並びにして、選んだ列車の列を :nth-child で塗る */
+table.tt{border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap}
+table.tt th,table.tt td{padding:0 4px;height:19px;line-height:19px;text-align:center;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-right:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+table.tt td{font-family:var(--f-num);min-width:42px;cursor:pointer}
+table.tt td sup{font-size:8.5px;color:var(--muted);margin-left:1px}
+table.tt thead th{position:sticky;top:0;z-index:2;background:var(--panel);height:auto;line-height:1.35;padding:5px 2px 4px;vertical-align:top;font-weight:400;font-size:11px;border-bottom:1.5px solid var(--ink);cursor:pointer}
+table.tt thead th .dst{font-weight:700;color:var(--ink)}
+table.tt thead th .no{font-family:var(--f-num);font-size:11.5px;color:var(--ink);letter-spacing:.02em;margin-bottom:2px}
+table.tt thead th .org,table.tt thead th .cr{color:var(--muted)}
+table.tt thead th.cn{left:0;z-index:4;cursor:default;text-align:left;padding-left:8px;color:var(--muted);border-right:1.5px solid var(--ink)}
+table.tt tbody th{position:sticky;z-index:1;background:var(--panel);font-family:var(--f-ui);font-weight:400}
+table.tt thead th.cn,table.tt tbody th{box-sizing:border-box}
+table.tt thead th.cn{width:104px;min-width:104px;max-width:104px}
+table.tt tbody th.st{left:0;width:80px;min-width:80px;max-width:80px;text-align:left;padding-left:8px;border-right:0;overflow:hidden}
+table.tt tbody th.st.maj{font-weight:700}
+table.tt tbody th.st.sub{padding-left:16px}
+table.tt tbody th.st.cont{border-bottom-color:transparent}
+table.tt tbody th.ad{left:80px;width:24px;min-width:24px;max-width:24px;padding:0;color:var(--muted);font-size:10.5px;border-right:1.5px solid var(--ink)}
+table.tt tbody tr.arr th,table.tt tbody tr.arr td{border-bottom-color:transparent}
+table.tt tbody tr.end th,table.tt tbody tr.end td{border-bottom:1.5px solid var(--line)}
+table.tt tbody tr.br th{left:0;width:104px;min-width:104px;max-width:104px;text-align:left;padding-left:8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--sub);background:color-mix(in srgb,var(--line) 45%,var(--panel));border-right:1.5px solid var(--ink)}
+table.tt tbody tr.br td{background:color-mix(in srgb,var(--line) 30%,transparent);cursor:default}
+table.tt .wait{color:var(--brick);font-weight:700}
+table.tt .p,table.tt .n,table.tt .v{color:var(--muted)}
+table.tt .n{opacity:.4}
+.hours{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.hours button{font:inherit;font-family:var(--f-num);font-size:12px;min-width:26px;padding:2px 4px;border:1px solid var(--line);border-radius:3px;background:var(--panel);color:var(--ink);cursor:pointer}
+.hours button:hover{background:color-mix(in srgb,var(--accent) 18%,var(--panel))}
+.chip{display:inline-block;font-family:var(--f-ui);font-size:11px;font-weight:700;padding:0 6px;border-radius:2px;color:var(--k-fg);background:var(--c);line-height:1.6}
+.chip.ex{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--amber)}
+.tlist{max-height:min(78vh,900px);overflow:auto}
+table.plain{border-collapse:collapse;font-size:13px;width:100%}
+table.plain th,table.plain td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.plain th{font-weight:500;color:var(--muted);font-size:12px}
+table.plain td.n{font-family:var(--f-num);text-align:right}
+.over{color:var(--brick);font-weight:700}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px 28px}
+.notes>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.notes p,.notes li{font-size:13.5px;color:var(--sub)}
+ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.small{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">犬村電気鉄道　運転計画（案）　平日</div>
+  <h1>始発から朝ラッシュまでのダイヤ</h1>
+  <p class="lead" id="lead"></p>
+  <p class="links" id="links" hidden></p>
+  <div class="legend" aria-label="種別の凡例">
+    <span><i class="sw" style="--c:var(--k-rap)"></i>快速</span>
+    <span><i class="sw" style="--c:var(--k-exp)"></i>急行</span>
+    <span><i class="sw thin" style="--c:var(--k-loc)"></i>各停</span>
+    <span><i class="sw" style="--c:var(--amber)"></i>増発（ピーク時のみ）</span>
+    <span><i class="sw dash" style="--c:var(--k-dh)"></i>回送</span>
+  </div>
+</header>
+
+<dl class="facts" id="facts"></dl>
+
+<section>
+  <div class="sec-h"><h2>ダイヤグラム</h2><span class="meta">横軸が時刻、縦軸が軒屋からの距離です。線をクリックすると停車駅と時刻が窓で開き、駅名をクリックするとその駅の時刻表が出ます。</span></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="拡大縮小">
+      <button type="button" id="zo">縮小</button><button type="button" id="zi">拡大</button>
+    </div>
+    <div class="seg" role="group" aria-label="表示する路線" id="lineSeg">
+      <button type="button" data-l="main" aria-pressed="true">本線・奥雲線</button><button type="button" data-l="hasu" aria-pressed="false">蓮木線</button>
+    </div>
+    <span class="hint" id="zoomlab"></span>
+  </div>
+  <div class="dia"><div class="lab" id="lab"></div><div class="pane" id="pane"><canvas id="cv"></canvas></div></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2 id="stTitle">駅の時刻表</h2><span class="meta">発車時刻（分）。色の札は種別、小さな字は行先です。黄色の下線は増発列車です。</span></div>
+  <div class="cols" id="boards"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>列車一覧（時刻表）</h2><span class="meta">縦に駅、横に列車を並べた時刻表です。列車番号は系統別の通し番号です（千の位が系統：1 快速奥雲温泉、2 快速犬塚ほか、3 急行犬塚ほか、4 急行蓮木市、5 各停秋田台・犬塚方面、6 各停高島、7 蓮木線内、8 奥雲線内、9 回送。下3桁は発車順で、下りは奇数、上りは偶数。501〜は増発）。ﾚ は通過、‥ は走らない区間、║ は別の線を通る区間。小さな数字は秒（00秒も書いています）。赤字は待避などで通常より長く止まる駅です。蓮木線の駅は学院前の位置に挟んであります。列をクリックすると、その列車の停車駅と時刻が窓で開きます（ダイヤグラムでも強調されます）。</span></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="方向" id="dirSeg">
+      <button type="button" data-d="D" aria-pressed="true">下り（軒屋発）</button><button type="button" data-d="U" aria-pressed="false">上り（軒屋行）</button>
+    </div>
+    <div class="seg" role="group" aria-label="回送"><button type="button" id="dhBtn" aria-pressed="false">回送も表示</button></div>
+    <div class="hours" id="ttHours" aria-label="時刻へ移動"></div>
+  </div>
+  <div class="scrollx tlist"><table class="tt" id="tt"></table></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>増発列車と回送</h2><span class="meta">最混雑時間帯にだけ走らせる列車です。日中パターンの列車は動かさず、空いた時間に入れています。</span></div>
+  <div class="scrollx"><table class="plain" id="extra"></table></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>夜間滞泊と始発</h2><span class="meta">始発列車に使う編成が、前夜にどこで寝ているかの一覧です。</span></div>
+  <div class="scrollx"><table class="plain" id="stab"></table></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>前提と気になる点</h2></div>
+  <div class="notes" id="notes"></div>
+</section>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<dialog class="tm" id="tm" aria-labelledby="tmTitle"></dialog>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const KC={"快速":"--k-rap","急行":"--k-exp","各停":"--k-loc","回送":"--k-dh"};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(t,sec=true)=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return `${h}:${String(m).padStart(2,'0')}`+(sec&&s?`<sup>${String(s).padStart(2,'0')}</sup>`:'')};
+const fmtP=t=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return `${h}:${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}`};            // 秒は00でも書く（本人の指定）
+const short=s=>({"奥雲温泉":"温","犬塚":"塚","秋田台":"秋","高島":"高","蓮木市":"蓮","就島":"就","新狛野":"狛","学院前":"学","軒屋":"軒","新犬村":"新"})[s]||s[0];
+// ---- 要点
+if(D.title){document.querySelector('h1').textContent=D.title;document.title=D.title;}
+document.getElementById('lead').textContent=D.lead;
+if(D.links&&D.links.length){            // 関連ページへのリンク（[[名前, 行き先, 補足]]。export.py が終日のダイヤのときに運用表を入れる）
+  const el=document.getElementById('links');el.hidden=false;
+  for(const [name,href,sub] of D.links){const s=document.createElement('span'),a=document.createElement('a');a.href=href;a.textContent=name+' →';s.append(a);if(sub)s.append('　'+sub);el.append(s);}
+}
+document.getElementById('facts').innerHTML=D.facts.map(f=>`<div class="fact"><dt>${f[0]}</dt><dd>${f[1]}</dd>${f[2]?`<span class="s">${f[2]}</span>`:''}</div>`).join('');
+document.getElementById('notes').innerHTML=D.notes.map(n=>`<div><h3>${n[0]}</h3>${n[1].map(p=>`<p>${p}</p>`).join('')}</div>`).join('');
+// ---- ダイヤグラム
+const pane=document.getElementById('pane'),cv=document.getElementById('cv'),lab=document.getElementById('lab');
+let line="main",pxMin=6,sel=null,stSel="新犬村";
+const T0=D.t0,T1=D.t1;
+const LINES={main:{st:D.main,h:660},hasu:{st:D.hasu,h:300}};
+function trainPts(t,L){
+  const st=LINES[L].st,km={};st.forEach(s=>km[s[0]]=s[1]);
+  const pts=[];
+  const want=(L==="main")?"M":"H";
+  // 学院前は両方の路線に属する：その路線の他の駅を通る列車なら、学院前もその路線の点として描く
+  const usesL=Object.entries(t.line).some(([s,v])=>s!=="学院前"&&v===want);
+  for(const r of t.rows){
+    const onL=t.line[r[0]]===want||(r[0]==="学院前"&&usesL);
+    if(!onL){ if(pts.length&&pts[pts.length-1]!==null)pts.push(null); continue;}
+    const k=km[r[0]]; if(k===undefined)continue;
+    if(r[1]!=null)pts.push([r[1],k]);
+    if(r[2]!=null&&r[2]!==r[1])pts.push([r[2],k]);
+    else if(r[1]==null&&r[2]!=null)pts.push([r[2],k]);
+  }
+  return pts;
+}
+let cache=[];
+function draw(){
+  const L=LINES[line],st=L.st,H=L.h,top=26,bot=10;
+  const maxKm=st[st.length-1][1];
+  const W=Math.round((T1-T0)/60*pxMin)+20;
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=(H+top+bot)*dpr;cv.style.width=W+'px';cv.style.height=(H+top+bot)+'px';
+  lab.style.height=(H+top+bot)+'px';
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle=css('--dia-bg');g.fillRect(0,0,W,H+top+bot);
+  const X=t=>10+(t-T0)/60*pxMin, Y=k=>top+k/maxKm*H;
+  // 時刻の格子
+  const step=pxMin>=10?2:pxMin>=5?5:10;
+  for(let t=Math.ceil(T0/60/step)*step*60;t<=T1;t+=step*60){
+    const m=(t/60)%60, x=X(t);
+    g.strokeStyle=m===0?css('--dia-major'):(m%10===0?css('--dia-grid2'):css('--dia-grid'));
+    g.lineWidth=m===0?1.4:1;g.beginPath();g.moveTo(x,top);g.lineTo(x,top+H);g.stroke();
+    if(m%10===0){g.fillStyle=m===0?css('--ink'):css('--muted');g.font=(m===0?'700 12px ':'11px ')+css('--f-num');g.textAlign='center';g.fillText(m===0?`${t/3600}:00`:String(m).padStart(2,'0'),x,top-9);}
+  }
+  // 駅の線
+  for(const s of st){g.strokeStyle=s[2]?css('--dia-major'):css('--dia-st');g.lineWidth=s[2]?1:0.7;g.beginPath();g.moveTo(0,Y(s[1]));g.lineTo(W,Y(s[1]));g.stroke();}
+  // 単線区間
+  if(line==="main"){for(const [a,b] of D.single){g.fillStyle=css('--grid');g.fillStyle='rgba(184,154,130,.10)';g.fillRect(0,Y(a),W,Y(b)-Y(a));}}
+  // 列車
+  cache=[];
+  const order=["回送","各停","急行","快速"];
+  const list=D.trains.slice().sort((a,b)=>order.indexOf(a.kind)-order.indexOf(b.kind)+(a.extra?.5:0)-(b.extra?.5:0));
+  for(const t of list){
+    const pts=trainPts(t,line); if(pts.filter(p=>p).length<2)continue;
+    const sc=pts.map(p=>p&&[X(p[0]),Y(p[1])]);
+    cache.push({t,sc});
+    const hi=sel&&sel===t.id;
+    g.setLineDash(t.kind==="回送"?[5,4]:[]);
+    if(t.extra){g.strokeStyle=css('--amber');g.lineWidth=hi?6:4.5;path(g,sc);g.stroke();}
+    g.strokeStyle=css(KC[t.kind]);g.lineWidth=hi?3.2:(t.kind==="各停"||t.kind==="回送"?1.1:1.8);
+    path(g,sc);g.stroke();
+  }
+  g.setLineDash([]);
+  if(sel){const c=cache.find(c=>c.t.id===sel);if(c){g.strokeStyle=css('--teal');g.lineWidth=3;path(g,c.sc);g.stroke();}}
+  // 駅名
+  lab.innerHTML=st.map(s=>`<button type="button" class="${s[2]?'maj':''} ${s[0]===stSel?'sel':''}" style="top:${Y(s[1])}px" data-s="${s[0]}">${s[0]}</button>`).join('');
+  document.getElementById('zoomlab').textContent=`1分＝${pxMin}px`;
+}
+function path(g,sc){g.beginPath();let pen=false;for(const p of sc){if(!p){pen=false;continue;}if(!pen){g.moveTo(p[0],p[1]);pen=true;}else g.lineTo(p[0],p[1]);}}
+lab.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;stSel=b.dataset.s;boards();draw();document.getElementById('stTitle').scrollIntoView({block:'start'});});
+cv.addEventListener('click',e=>{
+  const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let best=null;
+  for(const c of cache){for(let i=1;i<c.sc.length;i++){const a=c.sc[i-1],b=c.sc[i];if(!a||!b)continue;const d=segDist(x,y,a,b);if(d<7&&(!best||d<best.d))best={d,t:c.t};}}
+  if(best){sel=best.t.id;draw();markRow();showPop(best.t);}else if(sel){sel=null;draw();markRow();}
+});
+function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let u=l?((px-a[0])*dx+(py-a[1])*dy)/l:0;u=Math.max(0,Math.min(1,u));const x=a[0]+u*dx,y=a[1]+u*dy;return Math.hypot(px-x,py-y);}
+// 列車の詳細（モーダル）。どこで列車を選んでも画面は動かさず、この窓を開く。閉じても強調は残る
+const tm=document.getElementById('tm');
+const MAJ=new Set([...D.main,...D.hasu].filter(x=>x[2]).map(x=>x[0]));
+function closePop(){if(tm.open)tm.close();}
+function showPop(t){
+  const r0=t.rows[0],r1=t.rows[t.rows.length-1],dur=Math.round(((r1[1]??r1[2])-(r0[2]??r0[1]))/60);
+  const hasTrk=t.rows.some(r=>r[5]);            // 番線（export.py が tracks.py の割り当てを入れる。通過駅は通る線）
+  const rows=t.rows.map((r,i)=>{const stop=r[3];
+    const a=stop&&r[1]!=null&&i>0?fmtP(r[1]):'',d=stop&&r[2]!=null&&i<t.rows.length-1?fmtP(r[2]):'';
+    return `<tr class="${stop?'':'pass'}${MAJ.has(r[0])?' maj':''}"><td>${r[0]}</td><td>${stop?a:'ﾚ'}</td><td>${stop?d:''}</td>${hasTrk?`<td class="trk">${r[5]?r[5].replace('番線',''):''}</td>`:''}<td>${r[4]?`<span class="${r[4]>=60?'wait':''}">+${r[4]>=60?Math.floor(r[4]/60)+'分'+(r[4]%60?String(r[4]%60).padStart(2,'0')+'秒':''):r[4]+'秒'}</span>`:''}</td></tr>`}).join('');
+  const sub=[`${t.o} ${fmtP(r0[2]??r0[1])}発 → ${t.d} ${fmtP(r1[1]??r1[2])}着（${dur}分）`,t.cars?`${t.cars}両`:'',t.extra?'増発':'',t.note||'',t.after?'到着後 '+t.after:'',...(t.shunt||[])].filter(x=>x).join('・');
+  tm.innerHTML=`<div class="tm-h"><h4 id="tmTitle"><span class="chip ${t.extra?'ex':''}" style="--c:var(${KC[t.kind]})">${t.kind}</span>${t.d}行${t.no?` <span class="tno">${t.no}</span>`:''}<span class="small">${sub}</span></h4><button class="close" type="button" aria-label="閉じる">×</button></div>
+<div class="tm-b"><table><thead><tr><th>駅</th><th>着</th><th>発</th>${hasTrk?'<th>番線</th>':''}<th>停車の延長</th></tr></thead><tbody>${rows}</tbody></table></div>
+<div class="tm-f"><button type="button" data-a="clear">強調を消す</button><button type="button" data-a="dia">ダイヤグラムで見る</button><button type="button" class="pri" data-a="close">閉じる</button></div>`;
+  tm.querySelector('.close').onclick=closePop;
+  tm.querySelector('.tm-f').onclick=e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a;closePop();
+    if(a==='clear'){sel=null;draw();markRow();}
+    if(a==='dia')showOnDiagram(t.id);};
+  if(!tm.open)tm.showModal();
+  tm.querySelector('.tm-b').scrollTop=0;
+}
+tm.addEventListener('click',e=>{if(e.target===tm)closePop();});            // 窓の外（背景）を押したら閉じる
+function showOnDiagram(id){            // ダイヤグラムのその列車のところへ移動する（モーダルの「ダイヤグラムで見る」）
+  const c=cache.find(c=>c.t.id===id);if(!c)return;
+  const p=c.sc.find(p=>p);pane.scrollLeft=Math.max(0,p[0]-pane.clientWidth/3);
+  document.querySelector('.dia').scrollIntoView({block:'center'});            // なめらかに動かす指定（smooth）は、アプリ内のブラウザで動かなかったので使わない
+}
+function zoom(f){const c=(pane.scrollLeft+pane.clientWidth/2)/pxMin;pxMin=Math.max(2,Math.min(24,pxMin*f));pxMin=Math.round(pxMin*2)/2;closePop();draw();pane.scrollLeft=c*pxMin-pane.clientWidth/2;}
+document.getElementById('zi').onclick=()=>zoom(1.5);document.getElementById('zo').onclick=()=>zoom(1/1.5);
+document.querySelectorAll('#lineSeg button').forEach(b=>b.onclick=()=>{line=b.dataset.l;document.querySelectorAll('#lineSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));closePop();draw();});
+// ---- 駅の時刻表
+function boards(){
+  document.getElementById('stTitle').textContent=`${stSel}駅の時刻表`;
+  const groups={};
+  for(const t of D.trains){
+    if(t.kind==="回送")continue;
+    const r=t.rows.find(r=>r[0]===stSel); if(!r||!r[3]||r[2]==null)continue;
+    let key=t.dir==="D"?"下り":"上り";
+    if(stSel==="学院前"){ if(t.dir==="D") key=t.line["蓮木市"]?"下り 蓮木線":"下り 本線"; else key=t.line["甲斐野"]?"上り 蓮木線から":"上り 本線"; }
+    (groups[key]=groups[key]||[]).push({t,dep:r[2],trk:r[5]?r[5].replace('番線',''):''});
+  }
+  const dirName={"下り":"下り　奥雲温泉・蓮木市方面","上り":"上り　軒屋方面","下り 本線":"下り　本線（就島・犬塚方面）","下り 蓮木線":"下り　蓮木線（蓮木市方面）","上り 本線":"上り　軒屋方面（本線から）","上り 蓮木線から":"上り　軒屋方面（蓮木線から）"};
+  const html=Object.keys(groups).sort().map(k=>{
+    const L=groups[k].sort((a,b)=>a.dep-b.dep);const by={};
+    const cnt={};L.forEach(x=>cnt[x.t.d]=(cnt[x.t.d]||0)+1);const main=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+    L.forEach(x=>{const h=Math.floor(x.dep/3600);(by[h]=by[h]||[]).push(x)});
+    return `<div class="board"><h3>${dirName[k]||k}</h3><table>${Object.keys(by).map(h=>`<tr><td class="h">${h}</td><td><div class="mins">${by[h].map(x=>{const t=x.t,m=Math.floor(x.dep%3600/60);const tag=t.kind==="各停"?'':`<span class="t" style="--c:var(${KC[t.kind]})">${t.kind[0]}</span>`;return `<button type="button" class="mn ${t.extra?'x':''}" data-id="${t.id}" title="${t.kind} ${t.d}行 ${fmtP(x.dep)}${x.trk?' '+x.trk+'番線':''}">${tag}${String(m).padStart(2,'0')}${x.trk?`<sup>${x.trk}</sup>`:''}${t.d!==main?`<span class="d">${short(t.d)}</span>`:''}</button>`}).join('')}</div></td></tr>`).join('')}</table><p class="small" style="padding:6px 10px">無印の行先は${main}行。${L.some(x=>x.trk)?'分の右肩の小さい数字は番線。':''}</p></div>`;
+  }).join('');
+  document.getElementById('boards').innerHTML=html||'<p class="small">この駅に止まる列車はありません。</p>';
+  document.querySelectorAll('#boards .mn').forEach(b=>b.onclick=()=>focusTrain(b.dataset.id));
+}
+function focusTrain(id){            // 時刻表・駅の時刻表で列車を選んだとき：強調して、詳細をモーダルで出す（画面は動かさない）
+  const t=D.trains.find(x=>x.id===id);if(!t)return;sel=id;
+  const ln=Object.values(t.line).includes("M")?"main":"hasu";
+  if(ln!==line){line=ln;document.querySelectorAll('#lineSeg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.l===ln));}
+  draw();markRow();showPop(t);
+}
+// ---- 列車一覧
+// OuDia のような時刻表：縦に駅（蓮木線の駅は学院前の位置に挟む）、横に列車。主要駅・待避のある駅・途中で始発終着のある駅は着と発の2行
+let dirSel="D",showDH=false,ttCols=[];
+const KMM={};D.main.forEach(s=>KMM[s[0]]=s[1]);
+const KMH={};D.hasu.forEach(s=>KMH[s[0]]=s[1]+KMM["学院前"]);
+const SPK={"各停":105,"急行":80,"快速":62,"回送":70};            // 並べ順を決めるための、1kmあたりのおよその秒数
+const fmtT=t=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return `${h}${String(m).padStart(2,'0')}<sup>${String(s).padStart(2,'0')}</sup>`};            // 秒は00でも書く（本人の指定）
+function table(){
+  const dn=dirSel==="D";
+  // 駅の並び：[駅名, 線("M"/"H"), 主要駅か]
+  const mainS=D.main.map(s=>[s[0],"M",s[2]]),hasuS=D.hasu.slice(1).map(s=>[s[0],"H",s[2]]);
+  const ig=mainS.findIndex(s=>s[0]==="学院前");
+  const ST=dn?[...mainS.slice(0,ig+1),...hasuS,...mainS.slice(ig+1)]:[...mainS.slice(ig+1).reverse(),...hasuS.slice().reverse(),...mainS.slice(0,ig+1).reverse()];
+  const ix={};ST.forEach((s,i)=>ix[s[0]]=i);
+  // 列車の並び：軒屋に引き直した時刻の順（下りは軒屋を出る時刻、上りは軒屋に着く時刻。途中発着の列車は距離から見積もる）
+  const km=s=>s in KMM?KMM[s]:KMH[s];
+  const vt=t=>{const r0=t.rows[0],r1=t.rows[t.rows.length-1],f=SPK[t.kind]||90;return dn?(r0[2]??r0[1])-km(t.o)*f:(r1[1]??r1[2])+km(t.d)*f};
+  const L=D.trains.filter(t=>t.dir===dirSel&&(showDH||t.kind!=="回送")).map(t=>({t,v:vt(t),m:Object.fromEntries(t.rows.map(r=>[r[0],r]))})).sort((a,b)=>a.v-b.v);
+  ttCols=L;
+  // 着・発の2行にする駅
+  const two={};
+  ST.forEach((s,i)=>{if(s[2]&&i>0&&i<ST.length-1)two[s[0]]=true;});
+  L.forEach(c=>{c.t.rows.forEach(r=>{if(r[4]>0)two[r[0]]=true;});[c.t.o,c.t.d].forEach(s=>{const i=ix[s];if(i>0&&i<ST.length-1)two[s]=true;});});
+  const lastSt=dn?["奥雲温泉","蓮木市"]:["軒屋"];
+  lastSt.forEach(s=>delete two[s]);
+  const cell=(c,s,kind)=>{            // kind: "a" 着の行、"d" 発の行、"s" 1行だけの駅
+    const r=c.m[s[0]];
+    if(!r){
+      const i=ix[s[0]],a=ix[c.t.o],b=ix[c.t.d];
+      return (i>Math.min(a,b)&&i<Math.max(a,b))?'<td class="v">║</td>':'<td class="n">‥</td>';
+    }
+    if(!r[3])return '<td class="p">ﾚ</td>';
+    const w=r[4]>=60?' class="wait"':'';
+    if(kind==="a")return r[1]!=null?`<td>${fmtT(r[1])}</td>`:'<td></td>';
+    if(kind==="d")return r[2]!=null?`<td${w}>${fmtT(r[2])}</td>`:'<td></td>';
+    const v=lastSt.includes(s[0])?(r[1]??r[2]):(r[2]??r[1]);
+    return `<td${w}>${fmtT(v)}</td>`;
+  };
+  const head=`<thead><tr><th class="cn" colspan="2">列車番号<br>種別<br>行先<br>始発<br>両数</th>${L.map(c=>{const t=c.t;return `<th><div class="no">${t.no||''}</div><span class="chip ${t.extra?'ex':''}" style="--c:var(${KC[t.kind]})">${t.kind[0]}${t.extra?'増':''}</span><div class="dst">${t.d}</div><div class="org">${t.o}</div><div class="cr">${t.cars||''}</div></th>`}).join('')}</tr></thead>`;
+  let body='';
+  ST.forEach((s,i)=>{
+    const nm=s[0],cls=`st${s[2]?' maj':''}${s[1]==="H"?' sub':''}`;
+    if(s[1]==="H"&&(i===0||ST[i-1][1]!=="H"))body+=`<tr class="br"><th colspan="2">蓮木線</th><td colspan="${L.length}"></td></tr>`;
+    if(s[1]==="M"&&i>0&&ST[i-1][1]==="H")body+=`<tr class="br"><th colspan="2">犬村本線・奥雲線</th><td colspan="${L.length}"></td></tr>`;
+    if(two[nm]){
+      body+=`<tr class="arr"><th class="${cls} cont">${nm}</th><th class="ad">着</th>${L.map(c=>cell(c,s,"a")).join('')}</tr>`;
+      body+=`<tr class="${s[2]?'end':''}"><th class="${cls}"></th><th class="ad">発</th>${L.map(c=>cell(c,s,"d")).join('')}</tr>`;
+    }else{
+      body+=`<tr class="${s[2]?'end':''}"><th class="${cls}">${nm}</th><th class="ad">${lastSt.includes(nm)?'着':'発'}</th>${L.map(c=>cell(c,s,"s")).join('')}</tr>`;
+    }
+  });
+  const tt=document.getElementById('tt');
+  tt.innerHTML=head+`<tbody>${body}</tbody>`;
+  tt.onclick=e=>{const c=e.target.closest('td,th');if(!c)return;const tr=c.parentElement;if(tr.classList.contains('br'))return;const j=[...tr.children].indexOf(c)-(tr.parentElement.tagName==='THEAD'?1:2);if(j>=0&&ttCols[j])focusTrain(ttCols[j].t.id);};
+  // 時刻へ移動するボタン
+  const hs=[...new Set(L.map(c=>Math.floor(c.v/3600)))].filter(h=>h>=0).sort((a,b)=>a-b);
+  const hb=document.getElementById('ttHours');
+  hb.innerHTML='<span>時刻へ移動</span>'+hs.map(h=>`<button type="button" data-h="${h}">${h}</button>`).join('');
+  hb.onclick=e=>{const b=e.target.closest('button');if(!b)return;const j=L.findIndex(c=>c.v>=b.dataset.h*3600);if(j<0)return;const th=tt.tHead.rows[0].cells[j+1],box=tt.parentElement;box.scrollLeft=Math.max(0,th.offsetLeft-104);};
+  markRow();
+}
+function markRow(){            // 選んだ列車の列を塗る（どの行も同じ並びなので :nth-child で指定できる）
+  let st=document.getElementById('ttSel');if(!st){st=document.createElement('style');st.id='ttSel';document.head.appendChild(st);}
+  const j=ttCols.findIndex(c=>c.t.id===sel);
+  st.textContent=j<0?'':`#tt tbody tr:not(.br)>:nth-child(${j+3}),#tt thead th:nth-child(${j+2}){background:color-mix(in srgb,var(--teal) 20%,var(--panel))}`;
+}
+document.querySelectorAll('#dirSeg button').forEach(b=>b.onclick=()=>{dirSel=b.dataset.d;document.querySelectorAll('#dirSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));table();});
+document.getElementById('dhBtn').onclick=e=>{showDH=!showDH;e.currentTarget.setAttribute('aria-pressed',showDH);table();};
+// ---- 増発・滞泊
+document.getElementById('extra').innerHTML=`<thead><tr><th>列車</th><th>始発</th><th>新犬村</th><th>軒屋着</th><th>両数</th><th>途中の待ち</th><th>到着後</th></tr></thead><tbody>${D.extras.map(e=>`<tr><td><span class="chip" style="--c:var(${KC[e.kind]})">${e.kind}</span> ${e.label}</td><td>${e.o} ${fmtP(e.dep)}</td><td class="n">${e.mid?fmtP(e.mid):''}</td><td class="n">${fmtP(e.arr)}</td><td class="n">${e.cars}</td><td>${e.wait||'なし'}</td><td>${e.after}</td></tr>`).join('')}</tbody>`;
+document.getElementById('stab').innerHTML=`<thead><tr><th>駅・車庫</th><th>滞泊する編成</th><th>置ける数（仮定）</th><th>その編成で走る始発列車</th></tr></thead><tbody>${D.stab.map(s=>`<tr><td>${s.st}</td><td class="n ${s.n>s.cap?'over':''}">${s.n}</td><td class="n">${s.cap}</td><td>${s.first}</td></tr>`).join('')}</tbody>`;
+boards();table();draw();
+pane.scrollLeft=(D.scrollTo-T0)/60*pxMin;
+window.addEventListener('resize',()=>draw());
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw());}catch(e){}
+new MutationObserver(()=>draw()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
