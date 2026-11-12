@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dia-editor",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["src/editor.py"],
+      "port": 8765
+    },
+    {
+      "name": "dia-pages",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8770", "--bind", "127.0.0.1", "--directory", "page"],
+      "port": 8770
+    },
+    {
+      "name": "root-pages",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8771", "--bind", "127.0.0.1"],
+      "port": 8771
+    }
+  ]
+}
