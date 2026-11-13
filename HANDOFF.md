@@ -110,6 +110,8 @@ PYTHONPATH=../src python ../src/export.py cyc3_375_720_135_300_855_c.pkl        
 `cyc.py` と `grid.py` は `src` の中で実行する（`grid.py` が `python3 cyc.py` を呼ぶため）。`cyc.py` の引数は
 `下り各停 下り急行 下り快速 上り各停 上り急行 上り快速` のオフセット（秒）。
 
+公開（2026-11-13 本人の依頼）：`.github/workflows/pages.yml` が、master への push のたびに `page/index.html`（入口）・`dia_all.html`（ダイヤ）・`unyo.html`（車両運用表）・`board.html`（発車標）の4つだけを GitHub Pages に出す。ページはワークフローでは作り直さないので、手元で書き出してからコミットする。公開するページを増やすときは、ワークフローの `cp` の行と `page/index.html` のリンクの両方に足す。初回はリポジトリの Settings → Pages の Source を「GitHub Actions」にする。
+
 注意：`sched.py` は Python 標準ライブラリの `sched` と同名。名前を変えると既存の pickle が読めなくなるので、変えるなら pickle を作り直す。
 
 ### 日中パターンの探し方（2026-11-10 に見直し）

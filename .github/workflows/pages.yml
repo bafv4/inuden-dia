@@ -1,0 +1,43 @@
+# ダイヤ・車両運用表・発車標のページを GitHub Pages に公開する。
+#   master に push するたびに、page/ から公開する3つのページと入口（page/index.html）だけを集めて出す。
+#   ページは手元で書き出したもの（page/*.html）をそのまま使い、ここでは作り直さない。
+#   初回は、リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にしておくこと。
+name: Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 公開は1つずつ。途中の公開は止めず、間に溜まったものは飛ばす
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: 公開するページを集める
+        run: |
+          mkdir _site
+          cp page/index.html page/dia_all.html page/unyo.html page/board.html _site/
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
