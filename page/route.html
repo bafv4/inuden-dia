@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>犬電 停車駅のご案内</title>
+<!-- src/route.py が page/route_src.dc.html（Design キャンバス「犬電 停車駅図」の Main.dc.html）から書き出した。直すときは元を直して書き出し直す -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#35383B}a:hover{color:#645044}
+</style>
+<style>
+html,body{background:#F5F1E9}
+.fit{width:100%;overflow:hidden}
+.stage{width:2248px;height:900px;transform-origin:0 0}
+body{margin:0}
+nav{padding:12px 16px 0}
+.home{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;border:1px solid #DED2C4;border-radius:999px;background:#FBF9F4;color:#35383B;font:13px/1.2 'Zen Kaku Gothic New',sans-serif;text-decoration:none}.home:hover,.home:focus-visible{border-color:#35383B}      /* 入口（index.html）へ戻る */
+</style>
+</head>
+<body>
+<nav><a class="home" href="index.html"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>ホーム</a></nav>
+<div class="fit" id="fit"><div class="stage" id="stage"></div></div>
+<template id="dc"><div style="position: relative; width: 2248px; height: 900px; overflow: hidden; background: #F5F1E9; color: #35383B; font-family: 'Zen Kaku Gothic New', sans-serif">
+
+  <div style="position: absolute; left: 38px; top: 34px; display: flex; align-items: center; gap: 32px">
+    <div style="position: relative; top: 6px; display: flex; align-items: center; gap: 4px">
+    <svg viewBox="0 0 100 100" width="80" height="80" role="img" aria-label="犬村電鉄 ロゴマーク" style="display: block; flex-shrink: 0">
+      <g transform="translate(-1.5 -5.5)" stroke-width="5" stroke-linejoin="round">
+        <g transform="translate(3 3)" fill="#B89A82" stroke="#B89A82">
+          <polygon points="22,42.54 27.46,48 22,53.46 16.54,48"></polygon>
+          <polygon points="39,25.54 44.46,31 39,36.46 33.54,31"></polygon>
+          <polygon points="61,25.54 66.46,31 61,36.46 55.54,31"></polygon>
+          <polygon points="78,42.54 83.46,48 78,53.46 72.54,48"></polygon>
+          <polygon points="50,46.54 80.46,77 75,82.46 50,57.46 25,82.46 19.54,77"></polygon>
+        </g>
+        <g fill="#35383B" stroke="#35383B">
+          <polygon points="22,42.54 27.46,48 22,53.46 16.54,48"></polygon>
+          <polygon points="39,25.54 44.46,31 39,36.46 33.54,31"></polygon>
+          <polygon points="61,25.54 66.46,31 61,36.46 55.54,31"></polygon>
+          <polygon points="78,42.54 83.46,48 78,53.46 72.54,48"></polygon>
+          <polygon points="50,46.54 80.46,77 75,82.46 50,57.46 25,82.46 19.54,77"></polygon>
+        </g>
+      </g>
+    </svg>
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px">
+      <div style="font-size: 24px; font-weight: 700; letter-spacing: 0.1em; line-height: 1">犬村電鉄</div>
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Inumura Railway</div>
+    </div>
+    </div>
+    <div style="font-size: 52px; font-weight: 700; letter-spacing: 0.06em; line-height: 1">停車駅のご案内</div>
+    <div style="font-size: 31px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Inumura Railway Route Map</div>
+  </div>
+
+  <div style="position: absolute; left: 1560px; top: 48px; width: 640px; box-sizing: border-box; padding: 16px 24px 20px; border-radius: 20px; background: #DED2C4; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: baseline; gap: 8px">
+      <span style="font-size: 16px; font-weight: 700; letter-spacing: 0.2em; line-height: 1">凡例</span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Legend</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 20px; font-weight: 700; letter-spacing: 0.2em; line-height: 1; color: #BE493B">快速</span><span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Rapid Express</span></div>
+        <div style="height: 14px; border-radius: 7px; background: #BE493B; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px">レンガ/Brick</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 20px; font-weight: 700; letter-spacing: 0.2em; line-height: 1; color: #246BA3">急行</span><span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Express</span></div>
+        <div style="height: 14px; border-radius: 7px; background: #246BA3; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px">あお/Blue</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 20px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; color: #5F6367">各駅停車</span><span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">Local</span></div>
+        <div style="height: 14px; border-radius: 7px; background: #5F6367; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px">はいいろ/Gray</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: -40px; top: 0; width: 2200px; height: 900px">
+  <svg aria-hidden="true" width="2200" height="900" viewBox="0 0 2200 900" style="position: absolute; left: 0; top: 0">
+    <line x1="98" y1="512" x2="2054" y2="512" stroke="#BE493B" stroke-width="20" stroke-linecap="round"></line>
+    <line x1="530" y1="540" x2="2054" y2="540" stroke="#246BA3" stroke-width="20" stroke-linecap="round"></line>
+    <line x1="98" y1="568" x2="2054" y2="568" stroke="#5F6367" stroke-width="20" stroke-linecap="round"></line>
+    <path d="M1504,568 A28,28 0 0 0 1476,596 L1476,780 A56,56 0 0 1 1420,836 L1022,836" fill="none" stroke="#F5F1E9" stroke-width="30" stroke-linecap="butt"></path>
+    <path d="M1504,568 A28,28 0 0 0 1476,596 L1476,780 A56,56 0 0 1 1420,836 L1022,836" fill="none" stroke="#5F6367" stroke-width="20" stroke-linecap="round"></path>
+    <path d="M1504,540 A56,56 0 0 0 1448,596 L1448,780 A28,28 0 0 1 1420,808 L1022,808" fill="none" stroke="#F5F1E9" stroke-width="30" stroke-linecap="butt"></path>
+    <path d="M1504,540 A56,56 0 0 0 1448,596 L1448,780 A28,28 0 0 1 1420,808 L1022,808" fill="none" stroke="#246BA3" stroke-width="20" stroke-linecap="round"></path>
+  </svg>
+
+  <sc-for list="{{marks}}" as="m" hint-placeholder-count="100">
+    <div style="{{m.style}}"></div>
+  </sc-for>
+
+  <sc-for list="{{cols}}" as="s" hint-placeholder-count="48">
+    <div style="{{s.colStyle}}">
+      <div style="display: flex; flex-direction: row; align-items: flex-end; gap: 2px">
+        <div style="{{s.nameStyle}}">{{s.name}}</div>
+        <div style="{{s.romaStyle}}">{{s.roma}}</div>
+      </div>
+      <div style="position: relative; width: 44px; height: 44px; margin-top: 8px; flex-shrink: 0">
+        <svg width="44" height="44" viewBox="0 0 100 100" style="position: absolute; left: 0; top: 0" aria-hidden="true"><polygon points="53,26 80,53 53,80 26,53" fill="{{s.lc}}" stroke="{{s.lc}}" stroke-width="24" stroke-linejoin="round"></polygon><polygon points="50,23 77,50 50,77 23,50" fill="#35383B" stroke="#35383B" stroke-width="24" stroke-linejoin="round"></polygon></svg>
+        <div style="position: absolute; left: 0; top: 0; width: 44px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #F5F1E9; font-weight: 700; line-height: 1">
+          <span style="font-size: 6.5px; letter-spacing: 0.04em">IM</span>
+          <span style="font-size: 13px">{{s.no}}</span>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+
+  <sc-for list="{{labels}}" as="l" hint-placeholder-count="5">
+    <div style="{{l.style}}">
+      <span style="font-size: 22px; font-weight: 700; letter-spacing: 0.2em; line-height: 1">{{l.text}}</span>
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">{{l.sub}}</span>
+    </div>
+  </sc-for>
+
+  <div style="position: absolute; left: 1695px; top: 584px; width: 2px; height: 16px; background: #35383B"></div>
+  <div style="position: absolute; left: 1616px; top: 608px; width: 160px; display: flex; flex-direction: column; align-items: center; gap: 4px">
+    <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">JR在来線・新幹線</span>
+    <span style="font-size: 8.5px; font-weight: 700; letter-spacing: 0.04em; line-height: 1">JR Lines / Shinkansen</span>
+  </div>
+
+  <div style="position: absolute; left: 90px; top: 608px; width: 160px; height: 56px; border-radius: 11px; background: #8F6420; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px">
+    <span style="font-size: 22px; font-weight: 700; letter-spacing: 0.3em; margin-right: -0.3em; color: #F5F1E9; line-height: 1">奥雲線</span>
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #F5F1E9; line-height: 1">Ogumo Line</span>
+  </div>
+
+  <div style="position: absolute; left: 1878px; top: 608px; width: 176px; height: 56px; border-radius: 11px; background: #2B3A67; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px">
+    <span style="font-size: 22px; font-weight: 700; letter-spacing: 0.12em; margin-right: -0.12em; color: #F5F1E9; line-height: 1">犬村本線</span>
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #F5F1E9; line-height: 1">Inumura Main Line</span>
+  </div>
+
+  <div style="position: absolute; left: 708px; top: 794px; width: 160px; height: 56px; border-radius: 11px; background: #236962; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px">
+    <span style="font-size: 22px; font-weight: 700; letter-spacing: 0.3em; margin-right: -0.3em; color: #F5F1E9; line-height: 1">蓮木線</span>
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #F5F1E9; line-height: 1">Hasuki Line</span>
+  </div>
+  </div>
+
+  <div style="position: absolute; left: 1400px; top: 728px; width: 616px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5">
+  </div>
+
+  <div style="position: absolute; left: 50px; top: 828px; font-size: 14px; font-weight: 500; line-height: 1; color: #645044">2026年11月　停車駅（案）</div>
+
+</div></template>
+<script>
+// キャンバスの DCLogic の代わり（props と renderVals だけ使う）
+class DCLogic{constructor(props){this.props=props||{}}}
+class Component extends DCLogic {
+  renderVals() {
+    var main = [
+      ['軒屋','Nokiya','EKT'],['土佐浜','Tosahama','EK'],['大手通','Otedori','EK'],
+      ['裏町','Uramachi','EK'],['高砂町','Takasagocho','EK'],['千代町','Sendaicho','EK'],
+      ['境橋','Sakaibashi','EKT'],['新犬村','Shin-Inumura','EKT'],['船場町','Sembacho',''],
+      ['錦町','Nishikicho',''],['羅丹庵','Ranian',''],['学院前','Gakuin-mae','E'],
+      ['瑞法院','Zuihoin',''],['本位堂','Hon-ido',''],['城見台','Shiromidai',''],
+      ['就島','Shujima','EK'],['高島公園','Takashima-koen',''],['高島','Takashima','EKT'],
+      ['西高島','Nishi-Takashima',''],['吹上台','Fukiagedai','E'],['朝日台','Asahidai','E'],
+      ['岩瀬','Iwase',''],['秋田台','Akitadai','EK'],['院庄','In-nosho','E'],
+      ['三宅','Miyake','E'],['戌居','Inui','E'],['狛野','Komano','EKT'],
+      ['新狛野','Shin-Komano','EK'],['北川津','Kita-Kawatsu','E'],['星野','Hoshino','E'],
+      ['犬塚','Inuzuka','EKT'],['長坂','Nagasaka','K'],['下岩田','Shimoiwata',''],
+      ['羽土','Hado',''],['小椋','Ogura','K'],['東松田','Higashi-Matsuda','K'],
+      ['東蔵寺','Tozoji',''],['奥雲口','Ogumoguchi','KT'],['霧里','Kirinosato','KT'],
+      ['奥雲温泉','Ogumoonsen','KT']
+    ];
+    var hasu = [
+      ['甲斐野','Kaino',''],['佐茂町','Samocho','E'],['北洋台','Hokuyodai','E'],['売布','Urufu',''],
+      ['丑島','Ushijima',''],['桜湧水','Sakurayusui',''],['牧羊町','Bokuyocho','E'],['蓮木市','Hasukishi','E']
+    ];
+    var terminals = { '軒屋': 1, '奥雲温泉': 1, '犬塚': 1, '蓮木市': 1, '新犬村': 1, '高島': 1, '秋田台': 1, '新狛野': 1 };
+    var ROW = { rap: 512, exp: 540, loc: 568, hExp: 808, hLoc: 836 };
+    function mx(i) { return i <= 11 ? 2032 - 48 * i : 2032 - 48 * i - 48; }
+    function hx(j) { return 1372 - 48 * j; }
+
+    function col(x, top, h, s, ltd, no, lc) {
+      var term = terminals[s[0]];
+      var fs = term ? 24 : 22;
+      var rs = term ? 14 : 13;
+      return {
+        name: s[0], roma: s[1], ltd: ltd, no: (no < 10 ? '0' : '') + no, lc: lc,
+        romaStyle: 'writing-mode:vertical-rl;font-size:' + rs + 'px;font-weight:700;line-height:' + (rs + 2) + 'px;letter-spacing:0.04em;color:#35383B;white-space:nowrap',
+        colStyle: 'position:absolute;left:' + (x - 23) + 'px;top:' + top + 'px;width:46px;height:' + h + 'px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end',
+        nameStyle: 'writing-mode:vertical-rl;text-orientation:upright;font-size:' + fs + 'px;font-weight:700;line-height:' + fs + 'px;letter-spacing:0.04em;color:#35383B;white-space:nowrap'
+      };
+    }
+    var cols = [];
+    main.forEach(function (s, i) { cols.push(col(mx(i), 256, 232, s, s[2].indexOf('T') >= 0, i <= 27 ? i + 1 : 61 + i - 28, i <= 27 ? '#2B3A67' : '#8F6420')); });
+    hasu.forEach(function (s, j) { cols.push(col(hx(j), 640, 144, s, false, 41 + j, '#236962')); });
+
+    var marks = [];
+    function stop(x, y) {
+      marks.push({ style: 'position:absolute;left:' + (x - 5) + 'px;top:' + (y - 5) + 'px;width:10px;height:10px;border-radius:50%;background:#FFFFFF' });
+    }
+    main.forEach(function (s, i) {
+      var x = mx(i);
+      if (s[2].indexOf('K') >= 0) stop(x, ROW.rap);
+      if (s[2].indexOf('E') >= 0) stop(x, ROW.exp);
+      stop(x, ROW.loc);
+    });
+    hasu.forEach(function (s, j) {
+      var x = hx(j);
+      if (s[2].indexOf('E') >= 0) stop(x, ROW.hExp);
+      stop(x, ROW.hLoc);
+    });
+
+    function label(x, w, y, text, sub, color, align) {
+      return { text: text, sub: sub, style: 'position:absolute;left:' + x + 'px;top:' + (y - 12) + 'px;width:' + w + 'px;height:24px;white-space:nowrap;display:flex;align-items:center;gap:8px;justify-content:' + align + ';color:' + color };
+    }
+    var labels = [
+      label(2080, 160, ROW.rap, '快速', 'Rapid Express', '#BE493B', 'flex-start'),
+      label(2080, 160, ROW.exp, '急行', 'Express', '#246BA3', 'flex-start'),
+      label(2080, 160, ROW.loc, '各停', 'Local', '#5F6367', 'flex-start'),
+      label(884, 112, ROW.hExp, '急行', 'Express', '#246BA3', 'flex-end'),
+      label(884, 112, ROW.hLoc, '各停', 'Local', '#5F6367', 'flex-end')
+    ];
+    return { cols: cols, marks: marks, labels: labels };
+  }
+}
+(function(){
+  const vals=new Component({}).renderVals();
+  const get=(path,scope)=>path.trim().split('.').reduce((o,k)=>o==null?undefined:o[k],scope);
+  const fill=(str,scope)=>str.replace(/\{\{([^}]+)\}\}/g,(_,p)=>{const v=get(p,scope);return v==null?'':String(v)});
+  // <sc-for list="{{xs}}" as="x"> は中身を xs の数だけ繰り返す。ほかの要素は写して、属性と字の {{穴}} を埋める
+  function expand(node,scope){
+    if(node.nodeType===3)return [document.createTextNode(fill(node.nodeValue,scope))];
+    if(node.nodeType!==1)return [];
+    if(node.localName==='sc-for'){
+      const list=get(node.getAttribute('list').replace(/^\s*\{\{|\}\}\s*$/g,''),scope)||[],as=node.getAttribute('as'),out=[];
+      for(const item of list){const sc=Object.create(scope);sc[as]=item;node.childNodes.forEach(c=>out.push(...expand(c,sc)))}
+      return out;
+    }
+    const el=node.cloneNode(false);
+    for(const a of [...el.attributes])if(a.value.includes('{{'))el.setAttribute(a.name,fill(a.value,scope));
+    node.childNodes.forEach(c=>expand(c,scope).forEach(n=>el.appendChild(n)));
+    return [el];
+  }
+  const stage=document.getElementById('stage');
+  document.getElementById('dc').content.childNodes.forEach(c=>expand(c,vals).forEach(n=>stage.appendChild(n)));
+  // 幅に合わせて縮める（大きくはしない）
+  const fit=document.getElementById('fit');
+  const size=()=>{const k=Math.min(1,fit.clientWidth/2248);stage.style.transform=`scale(${k})`;fit.style.height=900*k+'px'};
+  addEventListener('resize',size);size();
+})();
+</script>
+</body>
+</html>

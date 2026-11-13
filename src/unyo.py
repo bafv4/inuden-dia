@@ -377,10 +377,11 @@ details.u summary{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;
 details.u summary .no{font-family:var(--f-num);font-weight:700;font-size:15px;min-width:34px}details.u summary .cat{font-size:12px;color:var(--muted);min-width:64px}
 details.u summary .od{flex:1;min-width:230px}details.u summary .m{font-family:var(--f-num);font-size:12.5px;color:var(--sub)}
 details.u .scrollx{border:0;border-top:1px solid var(--line)}
-ul.notes{margin:0;padding-left:20px;max-width:75ch}ul.notes li{margin:4px 0}"""
+ul.notes{margin:0;padding-left:20px;max-width:75ch}ul.notes li{margin:4px 0}
+.home{display:inline-flex;align-items:center;gap:6px;margin-bottom:4px;padding:5px 12px 5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:13px;line-height:1.2;text-decoration:none}.home:hover,.home:focus-visible{border-color:var(--ink)}      /* 入口（index.html）へ戻る */"""
     page = f"""<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>犬電 車両運用表</title><style>{css}</style></head><body><main>
-<header><h1>犬村電気鉄道 車両運用表</h1><p class="lead">終日のダイヤ（営業列車 {sum(1 for t in tr if t.kind != '回送')}本と回送 {sum(1 for t in tr if t.kind == '回送')}本）を、4両編成と2両編成でどう回すかをまとめた表です。編成を1本ずつ区別して、1日の動きと、翌日どの役に入るかを決めています。列車番号は<a href="dia_all.html">終日ダイヤのページ</a>と同じです。</p></header>
+<header><a class="home" href="index.html"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>ホーム</a><h1>犬村電気鉄道 車両運用表</h1><p class="lead">終日のダイヤ（営業列車 {sum(1 for t in tr if t.kind != '回送')}本と回送 {sum(1 for t in tr if t.kind == '回送')}本）を、4両編成と2両編成でどう回すかをまとめた表です。編成を1本ずつ区別して、1日の動きと、翌日どの役に入るかを決めています。列車番号は<a href="dia_all.html">終日ダイヤのページ</a>と同じです。</p></header>
 <section><dl class="facts">{''.join(f'<div class="fact"><dt>{a}</dt><dd>{b}<span class="s">{c}</span></dd></div>' for a, b, c in facts)}</dl></section>
 <section><div class="sec-h"><h2>基本の運用</h2><span class="meta">折返しでつながった列車の並びが、基本の編成1本の1日の行路です。行を開くと、列車番号つきの行路が出ます。駅名の横は発着の番線です。両数は、付属の編成を付けたり外したりして変わります。</span></div>{''.join(rows_u)}</section>
 <section><div class="sec-h"><h2>付属の編成・待機する編成の動き</h2><span class="meta">朝の時点の役ごとの1日の動きと、翌朝に入る役です。基本の編成のうち、途中で切り離されて入れ替わるものもここに載せています。</span></div>
