@@ -123,6 +123,15 @@ input[type=time]{background:var(--bg);border:1px solid var(--line);border-radius
 .tick .tt{font-size:1.4em;line-height:calc(2.5em/1.4);letter-spacing:.08em}
 /* 接近・通過の表示（液晶の最下段）：LED と同じく「電車がまいります／通過します」を、ふつうの表示と
    地を塗って字を抜いた表示とで 0.8秒ずつ交互に点滅。日英交互なら1サイクル（1.6秒）ごとに言語を替える */
+.pos{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#F2C94C}      /* 列車の位置 */
+.pos .fx{display:inline-flex;align-items:center;gap:.55em;font-size:1.3em;font-weight:700;white-space:nowrap}
+.pos .pl{margin-right:.4em;color:#F4F2EC;font-weight:700}      /* 当駅の時刻と種別 */
+.pos .ps{border:2px solid currentColor;border-radius:.3em;padding:0 .45em;line-height:1.45}
+.pos .ps.now{animation:posinv 1s step-end infinite}
+.pos .pa{display:inline-flex;color:#9DA3A9}.pos .pa svg{width:1.25em;height:.9em;display:block}
+.pos .pa.now{color:#F2C94C;animation:posblk 1s step-end infinite}
+@keyframes posinv{0%{background:#F2C94C;color:#08090B}50%{background:transparent;color:#F2C94C}}
+@keyframes posblk{50%{opacity:0}}
 .ap{position:absolute;inset:0;overflow:hidden;color:#FF9F5A;animation:apinv 1.6s step-end infinite}
 .ap.pass{color:#FF6B5A;animation-name:apinvp}
 .ap .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
@@ -134,7 +143,7 @@ input[type=time]{background:var(--bg);border:1px solid var(--line);border-radius
 @keyframes apl1{0%{visibility:hidden}50%{visibility:visible}}
 @media (prefers-reduced-motion:reduce){
   .tick .tt{position:static;display:block;overflow:hidden;text-overflow:ellipsis;transform:none!important}
-  .blink{animation:none} .ap,.ap.two .m0{animation:none} .ap.two .m1{display:none}
+  .blink{animation:none} .ap,.ap.two .m0,.pos .pa.now{animation:none} .pos .ps.now{animation:none;background:#F2C94C;color:#08090B} .ap.two .m1{display:none}
 }
 
 /* ===== LED（点の並びをキャンバスに描く）。見出しと枠は印刷した板の扱い ===== */
@@ -371,23 +380,33 @@ function stopText(t,k,l){
   const tail=tailAll?[en?`all stations from ${nm(rest[j])}`:`${nm(rest[j])}から先の各駅`]:[];
   return en?"Stops: "+[...head,...mid,...tail].join(", "):"停車駅　"+[...head,...mid,...tail].join("・");
 }
+// 流す文の重要な部分（種別・行先・両数・番線・分割・接続など）を印で囲む。フルカラーLEDだけ黄色で出し、ほかは印を外す（2026-11-13 本人の指定）
+//   種別は KB で別の印にし、フルカラーLEDでは種別の欄と同じく種別色の地に出す（2026-11-13 本人の指定）。中身は「種別\u0005表示名」
+const HI=s=>"\u0001"+s+"\u0002", KB=(k,l)=>"\u0003"+k+"\u0005"+kl(k,l)+"\u0004",
+      plain=s=>String(s).replace(/\u0003[^\u0005]*\u0005/g,"").replace(/[\u0001-\u0004]/g,"");
 function splitText(t,k,l){
   if(t.ks<0||k>=t.ks)return "";
   const en=l==="en",sp=SN(t.split,l),d=SN(t.d,l);
-  if(t.cd<t.co)return en?`Front ${t.cd} cars to ${d}; rear ${t.co-t.cd} cars terminate at ${sp}`:`前${t.cd}両は${d}まで、後ろ${t.co-t.cd}両は${sp}止まりです`;
-  return en?`${t.cd-t.co} cars added at ${sp}`:`${sp}で後ろに${t.cd-t.co}両を連結します`;
+  if(t.cd<t.co)return HI(en?`Front ${t.cd} cars to ${d}; rear ${t.co-t.cd} cars terminate at ${sp}`:`前${t.cd}両は${d}まで、後ろ${t.co-t.cd}両は${sp}止まりです`);
+  return HI(en?`${t.cd-t.co} cars added at ${sp}`:`${sp}で後ろに${t.cd-t.co}両を連結します`);
 }
 function infoText(e,l){
   const t=e.t,en=l==="en",d=SN(t.d,l);
-  if(t.kind==="回送")return en?"This train is not in service. Please do not board.":"この電車は回送電車です。ご乗車になれません。";
-  if(e.type==="pass")return en?"This train does not stop here.":"この電車は当駅を通過します。";      // 通過・当駅止まりは種別・行先（発駅）を流さない（2026-11-12 本人の指定）
-  if(e.type==="arr")return en?"This train terminates here.":"この電車は当駅止まりです。";
-  const parts=[en?`${e.k===0?"Starts here · ":""}${kl(t.kind,l)} for ${d} · ${carsAt(t,e.k)} cars`:`${e.k===0?"当駅始発 ":""}${kl(t.kind,l)} ${d}行き　${carsAt(t,e.k)}両`];
+  if(t.kind==="回送")return en?`This train is ${HI("not in service")}. ${HI("Please do not board.")}`:`この電車は${HI("回送電車")}です。${HI("ご乗車になれません。")}`;
+  if(e.type==="pass")return en?`This train ${HI("does not stop here")}.`:`この電車は当駅を${HI("通過")}します。`;      // 通過・当駅止まりは種別・行先（発駅）を流さない（2026-11-12 本人の指定）
+  if(e.type==="arr")return en?`This train ${HI("terminates here")}.`:`この電車は${HI("当駅止まり")}です。`;
+  const parts=[en?`${e.k===0?HI("Starts here")+" · ":""}${KB(t.kind,l)} for ${HI(d)} · ${HI(carsAt(t,e.k)+" cars")}`:`${e.k===0?HI("当駅始発")+" ":""}${KB(t.kind,l)} ${HI(d)}ゆき　${HI(carsAt(t,e.k)+"両")}`];
   const st=stopText(t,e.k,l);if(st)parts.push(st);
   const sp=splitText(t,e.k,l);if(sp)parts.push(sp);
   for(const c of connections(e))parts.push(connText(c,l));
   return parts.join("　◆　");
 }
+// 流す文の終わりに足す啓発文。1回流すごとに次の文に替える（2026-11-13 本人の指定：禁煙・駆け込み乗車・危険物）
+const NOTES=[
+  [`駅構内・車内は${HI("全面禁煙")}です。ご協力をお願いします。`,`${HI("Smoking is prohibited")} in the station and on trains.`],
+  [`${HI("駆け込み乗車")}は大変危険です。次の電車をご利用ください。`,`For your safety, ${HI("please do not rush")} onto the train. Please wait for the next one.`],
+  [`${HI("危険物")}の駅構内・車内への${HI("持ち込みは禁止")}されています。`,`${HI("Dangerous articles")} are ${HI("not allowed")} in the station or on trains.`]];
+const noteText=(i,l)=>NOTES[i%NOTES.length][l==="en"?1:0];
 // ---- 接続列車：この列車が先の駅に着いてから10分以内にそこを出る営業列車で、同じ向きに進み、
 //   この列車が行かない駅へ行くか（支線・終点の先）、この列車より先に着く駅があるもの。当駅でも乗れる列車は除く。
 //   同じ列車に乗り換えられる駅がいくつかあれば、いちばん先の駅（この列車に長く乗っていられる駅）にする。1駅1本・駅の早い順に2本まで
@@ -412,7 +431,7 @@ function connections(e){
 }
 function connText(c,l){
   const U=c.u.t,x=SN(ST[c.si].name,l),d=SN(U.d,l);
-  return l==="en"?`Connects at ${x} with the ${hm(c.u.time)} ${kl(U.kind,l)} for ${d}`:`${x}で ${hm(c.u.time)}発の${kl(U.kind,l)} ${d}行きに接続します`;
+  return l==="en"?`Connects at ${HI(x)} with the ${HI(hm(c.u.time)+" ")}${KB(U.kind,l)} for ${HI(d)}`:`${HI(x)}で ${HI(hm(c.u.time)+"発の")}${KB(U.kind,l)} ${HI(d)}ゆきに接続します`;
 }
 // ---- 接近・通過：選んでいる番線に、60秒以内に着く・通る列車（表示の切り替えに関係なく）
 function approachEv(t){
@@ -431,6 +450,29 @@ function approachText(e,l){
                  :(en?`${dh?"Out-of-service train":"Train"} approaching${all?` · Track ${e.plat}`:""}`:`${all?e.plat+"番線に ":""}${dh?"回送電車":"電車"}がまいります`);
   const sub=en?"Please stand behind the yellow tactile paving":"危ないですから黄色い点字ブロックまでお下がりください";
   return {pass,main,sub};
+}
+
+// ---- 列車の位置（最下段で、流す案内と交互に出す。日本語だけ。2026-11-13 本人の依頼）
+//   選んでいる番線・方面に次に着く（通る）列車が、前々駅 ⇨ 前駅 ⇨ 当駅 のどこにいるか。駅は停車駅に限らず線路上の隣の駅。
+//   ダイヤどおりの位置。前々駅より手前にいるとき・当駅始発のときは出さない。始発駅には発車の5分前からいることにする
+const POS_DUR=9, POS_ORIG=300;      // 位置を出す秒数（2026-11-13 本人の指定で6秒から少し長く）
+function posInfo(t){
+  let best=null,ba=Infinity;
+  for(const e of eventsAt(S.si)){
+    if(e.time>t+7200)break;
+    if(e.k===0||!shown(e))continue;
+    const a=e.type==="dep"?e.arr:e.time;if(a==null||a<=t||a>=ba)continue;
+    best=e;ba=a;
+  }
+  if(!best)return null;
+  const st=best.t.stops,k=best.k,ta=j=>st[j][1]??st[j][2]-POS_ORIG,td=j=>st[j][2]??st[j][1];
+  const items=[];for(const j of [k-2,k-1])if(j>=0)items.push({st:j,name:ST[st[j][0]].name},{ar:j});
+  items.push({name:"当駅"});
+  let lit=-1;
+  items.forEach((it,i)=>{if(it.st!=null&&t>=ta(it.st)&&t<td(it.st))lit=i;if(it.ar!=null&&t>=td(it.ar)&&t<ta(it.ar+1))lit=i});
+  if(lit<0)return null;
+  const label=hm(best.time)+(best.type==="arr"?"着":best.type==="pass"?" 通過":" "+kn(best.t.kind,"ja"));      // どの列車かが分かるように、当駅の時刻と種別
+  return {label,items:items.map(it=>it.name!=null?{name:it.name}:{arrow:1}),lit,key:best.ti+"|"+best.k+"|"+lit};
 }
 
 // ---- 段の中身（液晶・LEDで共通）
@@ -497,9 +539,9 @@ const LEDCFG={
     apInv:.8},           // 接近・通過は文を地の色と反転させて点滅（1つの状態の秒数）。電車の絵・注意の文は出さない
   ledfc:{N:24,G:2,off:"#1A1B1D",bg:"#060607",rad:.45,
     gen:{cjk:{f:["300","Noto Sans JP"],fill:23/24,cell:1,m:"skelV"},lat:{f:["400","Roboto Condensed"],fill:1,m:"skelV"},dig:{f:["400","Roboto Condensed"],fill:1,m:"skelV"}},
-    pal:{w:"#F4F4EE",y:"#FFD43B",o:"#FF8A3D",r:"#FF4A3A",g:"#55E37A",k:"#8E949A",R:"#E8352B",B:"#2C78E4",l:"#FFF09A"},
-    col:{kind:{快速:"w",急行:"w",各停:"w",回送:"k",通過:"o"},band:{快速:"R",急行:"B"},tm:"l",dst:"w",mute:"k",pl:"w",cr:"w",nt:"y",go:"g",now:"y",app:"o",
-         tick:"y",apArr:"y",apPass:"r",apSub:"w",train:"w",end:"w"},
+    pal:{w:"#F4F4EE",y:"#FFD43B",o:"#FF8A3D",r:"#FF4A3A",g:"#55E37A",k:"#8E949A",R:"#E8352B",B:"#2C78E4",l:"#FFF09A",G:"#6B7076"},
+    col:{kind:{快速:"w",急行:"w",各停:"w",回送:"k",通過:"o"},band:{快速:"R",急行:"B",各停:"G"},tm:"l",dst:"w",mute:"k",pl:"w",cr:"w",nt:"y",go:"g",now:"y",app:"o",
+         tick:"w",tickHi:"y",apArr:"y",apPass:"r",apSub:"w",train:"w",end:"w"},
     apInv:.8}            // 接近・通過は3色と同じく反転させて点滅
 };
 // 電車の絵：光らせる点を決める（幅48・高さ14。左が先頭）。後で段の高さに合わせて引き伸ばす
@@ -640,10 +682,32 @@ function ledText(out,W,txt,x,y,w,colKey,o={}){
   });
 }
 // 1段ぶんの帯（流れる文字・接近表示の文）を点にしたもの。maxW を超える文は横に詰める
-function ledStrip(txt,colKey,maxW){
-  const key=[LED.sty,txt,colKey,maxW||0].join("|");if(LED.scache.has(key))return LED.scache.get(key);
-  const N=LED.cfg.N,nat=Math.ceil(ledSet(txt,0,{}).tot)+2,w=maxW?Math.min(nat,maxW):nat,buf=new Uint8Array(w*N);
-  ledText(buf,w,txt,0,0,w,colKey,{align:"c"});
+//   hiKey があれば、印（HI）で囲んだ部分をその色にする（フルカラーの流す文）。なければ印は外して1色
+function ledStrip(txt,colKey,maxW,hiKey){
+  const key=[LED.sty,txt,colKey,maxW||0,hiKey||""].join("|");if(LED.scache.has(key))return LED.scache.get(key);
+  const pt=plain(txt),N=LED.cfg.N,C=LED.cfg.col;
+  if(hiKey&&pt!==txt){
+    const num=/[　-ヿ㐀-鿿＀-￯]/.test(pt),kw=LED.lay?LED.lay.col.kind[1]:Math.round(2.3*N);      // 数字の大きさは文全体で決める（1色のときと同じ）
+    const segs=[];let x=1;
+    for(const p of txt.split(/(\u0001[^\u0002]*\u0002|\u0003[^\u0004]*\u0004)/)){if(!p)continue;
+      if(p[0]==="\u0003"){      // 種別：種別の欄と同じ幅・同じ色の地に、同じ割り付けで出す
+        const [k,t]=p.slice(1,-1).split("\u0005"),band=C.band[k],tw=ledSet(t,0,{num}).tot;
+        if(band){const bw=Math.max(kw,Math.ceil(tw)+2);segs.push({x,t,w:bw,band,col:C.kind[k]||colKey,ja:/[^\x00-\x7f]/.test(t)});x+=bw}
+        else{segs.push({x,t,w:tw,col:hiKey});x+=tw}
+        continue}
+      const hi=p[0]==="\u0001",t=plain(p),tw=ledSet(t,0,{num}).tot;segs.push({x,t,w:tw,col:hi?hiKey:colKey});x+=tw}
+    const w=Math.ceil(x)+1;
+    if(!maxW||w<=maxW){
+      const buf=new Uint8Array(w*N),keys=Object.keys(LED.cfg.pal);
+      for(const s of segs){
+        if(s.band){const bi=keys.indexOf(s.band)+1,x0=Math.round(s.x);for(let j=0;j<N;j++)buf.fill(bi,j*w+x0,j*w+x0+s.w);
+          ledText(buf,w,s.t,x0+1,0,s.w-2,s.col,{align:"c",num,just:s.ja?s.w:0})}
+        else ledText(buf,w,s.t,s.x,0,s.w,s.col,{num})}
+      const s={w,buf};LED.scache.set(key,s);return s;
+    }
+  }
+  const nat=Math.ceil(ledSet(pt,0,{}).tot)+2,w=maxW?Math.min(nat,maxW):nat,buf=new Uint8Array(w*N);
+  ledText(buf,w,pt,0,0,w,colKey,{align:"c"});
   const s={w,buf};LED.scache.set(key,s);return s;
 }
 function ledTrain(colKey){
@@ -700,8 +764,12 @@ function ledSetup(n,all){
 function ledPaint(j0,h,buf){
   const L=LED.lay,c=LED.ctx,p=L.p,dpr=L.dpr,y0=Math.floor(j0*p*dpr),y1=Math.ceil((j0+h)*p*dpr);
   c.drawImage(LED.bg,0,y0,LED.bg.width,y1-y0,0,y0,LED.bg.width,y1-y0);
+  // 点は帯の中だけに描く。拡大率によって点の縁のぼかしが帯の外へ1画素はみ出し、そこは描き直さないので、
+  //   流すたびに重なって最下段の上に線が出ていた
+  c.save();c.beginPath();c.rect(0,y0,LED.bg.width,y1-y0);c.clip();
   const d=LED.spr[0].width/2;
   for(let j=0;j<h;j++){const y=(j0+j+.5)*p*dpr-d;for(let i=0;i<L.cols;i++){const v=buf[j*L.cols+i];if(v)c.drawImage(LED.spr[v-1],(L.offX+(i+.5)*p)*dpr-d,y)}}
+  c.restore();
 }
 // 段（rows は rowData の並び）を点にして描く
 function ledRows(rows,endMsg,l,blinkOn){
@@ -732,10 +800,41 @@ function ledBlit(out,s,px){            // 帯 s を位置 px（点）に置く
   const W=LED.lay.cols,N=LED.lay.N;
   for(let i=Math.max(0,px);i<Math.min(W,px+s.w);i++){const sx=i-px;for(let j=0;j<N;j++){const v=s.buf[j*s.w+sx];if(v)out[j*W+i]=v}}
 }
+// 列車の位置の帯：駅名 ⇨ 駅名 ⇨ 当駅。いる駅は地を光らせて字を抜き、走っている区間は矢印を点滅させる（on で切り替え）
+function ledPosStrip(pos,on){
+  const key=["pos",LED.sty,LED.lay.cols,pos.key,on].join("|");if(LED.scache.has(key))return LED.scache.get(key);
+  const N=LED.cfg.N,C=LED.cfg.col,pal=Object.keys(LED.cfg.pal),ci=k=>pal.indexOf(k)+1,W=LED.lay.cols-2;
+  const pad=Math.round(.3*N),aw=Math.round(.9*N),g=Math.round(.35*N);
+  const items=[{label:pos.label},...pos.items],lit=pos.lit+1;      // 先頭に当駅の時刻と種別
+  const nat=items.map(it=>it.arrow?0:Math.ceil(ledSet(it.label??it.name,0,{}).tot));
+  const fixed=items.reduce((a,it)=>a+(it.arrow?aw:it.label?0:2*pad),0)+g*(items.length-1)+g,sumN=nat.reduce((a,b)=>a+b,0);
+  const k=Math.min(1,(W-fixed)/sumN),ws=items.map((it,i)=>it.arrow?aw:Math.floor(nat[i]*k)+(it.label?0:2*pad));
+  const w=ws.reduce((a,b)=>a+b,0)+g*items.length,buf=new Uint8Array(w*N);
+  let x=0;
+  items.forEach((it,i)=>{
+    const now=i===lit;
+    if(it.label){ledText(buf,w,it.label,0,0,ws[i],C.tm,{});x+=ws[i]+2*g;return}
+    if(it.arrow){
+      if(!now||on){const c=ci(now?C.apArr:C.cr),ex=LED.sty==="ledfc"?1:0,sh0=Math.round(.4*N)-ex,sh1=Math.round(.6*N)+ex,hx=Math.round(.45*aw),hh=.42*N;
+        for(let j=0;j<N;j++)for(let xx=0;xx<aw;xx++){
+          const inShaft=xx<hx&&j>=sh0&&j<sh1,inHead=xx>=hx&&Math.abs(j+.5-N/2)<=hh*(aw-xx)/(aw-hx);
+          if(inShaft||inHead)buf[j*w+x+xx]=c}}
+    }else{
+      const tw=ws[i]-2*pad;
+      if(now&&on){            // 地を光らせて字を抜く
+        const tmp=new Uint8Array(tw*N);ledText(tmp,tw,it.name,0,0,tw,C.apArr,{align:"c"});const c=ci(C.apArr);
+        for(let j=0;j<N;j++)for(let xx=0;xx<ws[i];xx++){const sx=xx-pad;if(!(sx>=0&&sx<tw&&tmp[j*tw+sx]))buf[j*w+x+xx]=c}
+      }else{const tmp=new Uint8Array(tw*N);ledText(tmp,tw,it.name,0,0,tw,now?C.apArr:C.dst,{align:"c"});
+        for(let j=0;j<N;j++)for(let xx=0;xx<tw;xx++)if(tmp[j*tw+xx])buf[j*w+x+pad+xx]=tmp[j*tw+xx]}
+    }
+    x+=ws[i]+g;
+  });
+  const s={w,buf};LED.scache.set(key,s);return s;
+}
 function ledFrame(){
   LED.raf=0;
   if(!isLed()||!LED.lay||!LED.bot)return;
-  const L=LED.lay,C=LED.cfg.col,N=L.N,W=L.cols,b=LED.bot,el=(performance.now()-b.t0)/1000;
+  const L=LED.lay,C=LED.cfg.col,N=L.N,W=L.cols,b=LED.bot;let el=(performance.now()-b.t0)/1000;
   const v=N*3.6;                       // 流れる速さ（点/秒）
   let parts=[],sig="",inv=0;
   if(b.type!=="tick"&&LED.cfg.apInv){
@@ -747,9 +846,15 @@ function ledFrame(){
     if(k%2)inv=Object.keys(LED.cfg.pal).indexOf(ck)+1;
     sig="i"+t.main+"|"+inv;
   }else if(b.type==="tick"){
-    // 切り替わったら（接近表示の後など）1秒あけてから、文の頭を右端から流し始める
-    const s=ledStrip(b.text,C.tick);const per=W+s.w,wait=1;
-    if(el>=wait){const px=W-(Math.floor((el-wait)*v)%per);parts.push([s,px]);sig="t"+px}else sig="t-";
+    // 切り替わったら（接近表示の後など）1秒あけてから、文の頭を右端から流し始める。
+    //   流し終えたら、列車の位置を出せるときは POS_DUR 秒出してから、また1秒あけて流す
+    //   流し終えるごとに、文の終わりの啓発文を次のものに替える
+    const s=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi);const per=W+s.w,wait=1,Dt=wait+per/v,tn=performance.now();
+    if(b.mode==="pos"){if(el>=POS_DUR||!LED.pos){b.mode="tick";b.t0=tn;el=0}}
+    else if(el>=Dt){b.n++;if(LED.pos){b.mode="pos";b.t0=tn;el=0}else{b.t0+=Dt*1000;el-=Dt}}
+    const sn=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi);
+    if(b.mode==="pos"){const on=Math.floor(el*2)%2===0,ps=ledPosStrip(LED.pos,on);parts.push([ps,Math.round((W-ps.w)/2)]);sig="p"+LED.pos.key+"|"+on}
+    else if(el>=wait){const px=W-Math.floor((el-wait)*v);parts.push([sn,px]);sig="t"+b.n+"|"+px}else sig="t-";
   }else{
     // 接近・通過：電車の絵が横切る → 文を点滅（3回）→ 注意の文を流す（日英交互なら日本語・英語の順）
     const seq=[];const tr=ledTrain(C.train);const vt=W/(b.pass?.8:1.6);
@@ -788,11 +893,13 @@ function renderBoard(t){
   $("bClk").innerHTML=`${hm(t)}<small>:${two(Math.floor(t)%60)}</small>`+(S.live?"":`<span class="sim">${S.play?(hen?"Playing ×":"再生中 ×")+S.spd:(hen?"Set time":"時刻を指定")}</span>`);
   const n=nRows(),list=upcoming(n,t),rows=list.map(e=>rowData(e,t,l,led));
   const endMsg=list.length?"":(t>DAY0+12*3600?(en?"Service has ended for today":"本日の電車は終了しました"):(en?"No departures from this track":"この番線から発車する電車はありません"));
-  const ae=S.appr?approachEv(t):null;
+  const ae=S.appr?approachEv(t):null,pos=list.length?posInfo(t):null;
   const tl=S.lang==="alt"?null:l;          // 日英交互のときは、流す文に日本語と英語を続けて入れる（途中で切り替えない）
-  const one=(e,ll)=>(all&&e.plat?(ll==="en"?`Track ${e.plat}　`:`${e.plat}番線　`):"")+infoText(e,ll);
-  const tk=list.length?(tl?one(list[0],tl):one(list[0],"ja")+"　　　"+one(list[0],"en"))
+  const one=(e,ll)=>(all&&e.plat?HI(ll==="en"?`Track ${e.plat}`:`${e.plat}番線`)+"　":"")+infoText(e,ll);
+  const one1=(ll,i)=>one(list[0],ll)+"　◆　"+noteText(i,ll);      // 列車の案内のあとに啓発文（i 番目）
+  const tkOf=i=>list.length?(tl?one1(tl,i):one1("ja",i)+"　　　"+one1("en",i))
     :(tl==="en"?"Service has ended for today. Thank you for riding with us.":"本日の営業は終了しました。ご利用ありがとうございました。");
+  const tk=tkOf(0);
 
   if(led){
     if(anim){anim.cancel();anim=null}
@@ -808,7 +915,8 @@ function renderBoard(t){
     if(ae){
       const langs=S.lang==="alt"?["ja","en"]:[l];
       ledBottom({key:`ap|${ae.ti}|${ae.k}|${S.lang}|${all}|${LED.key}`,type:"ap",pass:ae.type==="pass",texts:langs.map(x=>approachText(ae,x))});
-    }else ledBottom({key:"tk|"+tk+"|"+LED.key,type:"tick",text:tk});
+    }else ledBottom({key:"tk|"+tk+"|"+LED.key,type:"tick",texts:NOTES.map((_,i)=>tkOf(i)),n:0,mode:"tick"});
+    LED.pos=pos;
     ledKick();
     return;
   }
@@ -845,14 +953,27 @@ function renderBoard(t){
     return;
   }
   lastAp="";
-  if(tk!==lastTick){lastTick=tk;startTick(tk)}
+  // 流し終えたら、列車の位置を出せるときは POS_DUR 秒出してから、また流す（LED と同じ）
+  const tn=performance.now();
+  //   流し終えるごとに、文の終わりの啓発文を次のものに替える（LED と同じ）
+  if(tk!==lastTick){lastTick=tk;BOT.n=0;BOT.mode="tick";BOT.t0=tn;startTick(tk)}
+  else if(BOT.mode==="tick"&&tn-BOT.t0>=BOT.dur*1000){BOT.n++;BOT.t0=tn;if(pos){BOT.mode="pos";BOT.pk=""}else startTick(tkOf(BOT.n))}
+  else if(BOT.mode==="pos"&&(tn-BOT.t0>=POS_DUR*1000||!pos)){BOT.mode="tick";BOT.t0=tn;startTick(tkOf(BOT.n))}
+  if(BOT.mode==="pos"&&pos.key!==BOT.pk){BOT.pk=pos.key;if(anim){anim.cancel();anim=null}
+    const AR=`<svg viewBox="0 0 20 14" aria-hidden="true"><path d="M0 5h9V0l11 7-11 7V9H0z" fill="currentColor"/></svg>`;
+    $("bTick").innerHTML=`<div class="pos" role="img" aria-label="${esc(pos.label+"の電車の位置 "+pos.items.map((it,i)=>(it.arrow?"→":it.name)+(i===pos.lit?"（ここ）":"")).join(" "))}"><span class="fx"><span class="pl">${esc(pos.label)}</span>${pos.items.map((it,i)=>it.arrow?`<span class="pa${i===pos.lit?" now":""}">${AR}</span>`:`<span class="ps${i===pos.lit?" now":""}">${esc(it.name)}</span>`).join("")}</span></div>`;
+    fit($("bTick"));
+  }
 }
+const BOT={mode:"tick",t0:0,dur:8,pk:"",n:0};
 function startTick(txt){
   const box=$("bTick");
   if(anim){anim.cancel();anim=null}
-  box.innerHTML=`<span class="tt"></span>`;const el=box.firstChild;el.textContent=txt;
+  box.innerHTML=`<span class="tt"></span>`;const el=box.firstChild;el.textContent=plain(txt);
+  BOT.dur=8;
   if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   const cw=box.clientWidth,w=el.getBoundingClientRect().width,px=Math.max(90,cw/7);
+  BOT.dur=1+(cw+w)/px;
   // LED と同じく、切り替わったら1秒あけてから文の頭を右端から流し始める（待つ間は右端の外に置く）
   anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(${-w}px)`}],{duration:(cw+w)/px*1000,iterations:Infinity,delay:1000,fill:"backwards"});
 }
@@ -938,7 +1059,7 @@ function renderNext(t){
   const th=en?["Time","Type","Destination","Track","Cars","Train","Stops / remarks"]:["時刻","種別","行先","番線","両数","列車番号","停車駅・備考"];
   $("nx").innerHTML=`<thead><tr>${th.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>`+L.map(e=>{
     const tr=e.t,cls=e.type==="pass"?"pass":tr.kind==="回送"?"dh":"";
-    const note=e.type==="pass"?L2("通過","Passes"):e.type==="arr"?L2(`当駅止まり（${tr.o}発）`,`Terminates here (from ${SN(tr.o,l)})`):(e.k===0?L2("当駅始発　","Starts here · "):"")+(stopText(tr,e.k,l)||"")+(splitText(tr,e.k,l)?"　"+splitText(tr,e.k,l):"");
+    const note=e.type==="pass"?L2("通過","Passes"):e.type==="arr"?L2(`当駅止まり（${tr.o}発）`,`Terminates here (from ${SN(tr.o,l)})`):(e.k===0?L2("当駅始発　","Starts here · "):"")+(stopText(tr,e.k,l)||"")+(plain(splitText(tr,e.k,l))?"　"+plain(splitText(tr,e.k,l)):"");
     return `<tr class="${cls}" data-ti="${e.ti}" data-k="${e.k}" tabindex="0"><td class="n">${hms(e.time)}${e.type==="arr"?L2(" 着"," arr"):""}</td><td><span class="chip ${tr.kind==="回送"?"o":""}" style="--c:${KC[tr.kind]}">${kn(tr.kind,l)}</span></td><td>${esc(tr.kind==="回送"?L2("回送","Not in service")+"（"+SN(tr.d,l)+"）":SN(tr.d,l))}</td><td class="n">${e.plat||"—"}</td><td class="n">${carsAt(tr,e.k)}</td><td class="n">${tr.no}</td><td class="lg" title="${esc(note)}">${esc(note)}</td></tr>`}).join("")+"</tbody>";
   $("nx").querySelectorAll("tbody tr[data-ti]").forEach(r=>{const go=()=>openTrain(+r.dataset.ti,+r.dataset.k);r.onclick=go;r.onkeydown=ev=>{if(ev.key==="Enter")go()}});
 }
@@ -991,7 +1112,7 @@ function tick(){
 // ---- 字の表を作る：盤面に出る字をすべて洗い出し、2つの盤面（縦16点・24点）の大きさで点にして、src/ledfont.py の受け口へ送る
 async function ledGenerate(port){
   const sets={n:new Set(),b:new Set()};
-  const add=(s,big)=>{for(const c of String(s||""))sets[big&&/[\d:]/.test(c)?"b":"n"].add(c)};
+  const add=(s,big)=>{for(const c of plain(s||""))sets[big&&/[\d:]/.test(c)?"b":"n"].add(c)};
   for(let i=32;i<127;i++)sets.n.add(String.fromCharCode(i));
   for(const c of "0123456789:")sets.b.add(c);
   const pl0=S.pl;
@@ -1001,13 +1122,14 @@ async function ledGenerate(port){
       const r=rowData(e,t,l,true);
       add(r.kt);add(r.tm+(r.suf?(l==="en"?" ":"")+r.suf:""),!r.suf);add(r.dst);add(r.plat,true);add(r.cars+r.unit,true);add(r.nt);add(r.sp);
     }
-    add(infoText(e,l));if(e.plat)add(l==="en"?`Track ${e.plat}　`:`${e.plat}番線　`);
+    add(infoText(e,l));add(NOTES.map((_,i)=>noteText(i,l)).join(""));if(e.plat)add(l==="en"?`Track ${e.plat}　`:`${e.plat}番線　`);
     for(const pl of ["all",e.plat||"all"]){S.pl=pl;const ap=approachText(e,l);add(ap.main);add(ap.sub)}
   }});
   S.pl=pl0;
   ["本日の電車は終了しました","Service has ended for today","この番線から発車する電車はありません","No departures from this track",
    "本日の営業は終了しました。ご利用ありがとうございました。","Service has ended for today. Thank you for riding with us.","　　　","　◆　"].forEach(x=>add(x));
   Object.values(KN).forEach(k=>k.forEach(x=>add(x)));
+  ST.forEach(st=>add(st.name));add("当駅");      // 列車の位置（最下段）には行先にならない駅名も出る
   const link=document.createElement("link");link.rel="stylesheet";
   link.href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300&family=Roboto+Condensed:wght@400&display=swap";
   document.head.appendChild(link);await new Promise(r=>{link.onload=r;link.onerror=r});
