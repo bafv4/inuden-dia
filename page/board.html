@@ -371,7 +371,7 @@ const carsAt=(t,k)=>t.ks>=0&&k>=t.ks?t.cd:t.co;
 function stopText(t,k,l){
   const rest=t.stops.slice(k+1),nm=s=>SN(ST[s[0]].name,l),en=l==="en";
   if(!rest.length)return "";
-  if(rest.every(s=>s[3]))return rest.length>1?(en?`All stations to ${SN(t.d,l)}`:"終点まで各駅に止まります"):"";
+  if(rest.every(s=>s[3]))return rest.length>1?(en?`All stations to ${SN(t.d,l)}`:"終点まで各駅に停まります"):"";
   let a=0;while(a<rest.length&&rest[a][3])a++;
   let j=rest.length;while(j>0&&rest[j-1][3])j--;
   const tailAll=rest.length-j>=4;
@@ -381,9 +381,10 @@ function stopText(t,k,l){
   return en?"Stops: "+[...head,...mid,...tail].join(", "):"停車駅　"+[...head,...mid,...tail].join("・");
 }
 // 流す文の重要な部分（種別・行先・両数・番線・分割・接続など）を印で囲む。フルカラーLEDだけ黄色で出し、ほかは印を外す（2026-11-13 本人の指定）
+//   啓発文の強調は NH で別の印にし、3色LEDではそこだけ赤にする（2026-11-13 本人の指定）。フルカラーLEDでは HI と同じ黄色
 //   種別は KB で別の印にし、フルカラーLEDでは種別の欄と同じく種別色の地に出す（2026-11-13 本人の指定）。中身は「種別\u0005表示名」
-const HI=s=>"\u0001"+s+"\u0002", KB=(k,l)=>"\u0003"+k+"\u0005"+kl(k,l)+"\u0004",
-      plain=s=>String(s).replace(/\u0003[^\u0005]*\u0005/g,"").replace(/[\u0001-\u0004]/g,"");
+const HI=s=>"\u0001"+s+"\u0002", NH=s=>"\u0006"+s+"\u0007", KB=(k,l)=>"\u0003"+k+"\u0005"+kl(k,l)+"\u0004",
+      plain=s=>String(s).replace(/\u0003[^\u0005]*\u0005/g,"").replace(/[\u0001-\u0004\u0006\u0007]/g,"");
 function splitText(t,k,l){
   if(t.ks<0||k>=t.ks)return "";
   const en=l==="en",sp=SN(t.split,l),d=SN(t.d,l);
@@ -403,9 +404,9 @@ function infoText(e,l){
 }
 // 流す文の終わりに足す啓発文。1回流すごとに次の文に替える（2026-11-13 本人の指定：禁煙・駆け込み乗車・危険物）
 const NOTES=[
-  [`駅構内・車内は${HI("全面禁煙")}です。ご協力をお願いします。`,`${HI("Smoking is prohibited")} in the station and on trains.`],
-  [`${HI("駆け込み乗車")}は大変危険です。次の電車をご利用ください。`,`For your safety, ${HI("please do not rush")} onto the train. Please wait for the next one.`],
-  [`${HI("危険物")}の駅構内・車内への${HI("持ち込みは禁止")}されています。`,`${HI("Dangerous articles")} are ${HI("not allowed")} in the station or on trains.`]];
+  [`駅構内・車内は${NH("全面禁煙")}です。ご協力をお願いします。`,`${NH("Smoking is prohibited")} in the station and on trains.`],
+  [`${NH("駆け込み乗車")}は大変危険です。次の電車をご利用ください。`,`For your safety, ${NH("please do not rush")} onto the train. Please wait for the next one.`],
+  [`${NH("危険物")}の駅構内・車内への${NH("持ち込みは禁止")}されています。`,`${NH("Dangerous articles")} are ${NH("not allowed")} in the station or on trains.`]];
 const noteText=(i,l)=>NOTES[i%NOTES.length][l==="en"?1:0];
 // ---- 接続列車：この列車が先の駅に着いてから10分以内にそこを出る営業列車で、同じ向きに進み、
 //   この列車が行かない駅へ行くか（支線・終点の先）、この列車より先に着く駅があるもの。当駅でも乗れる列車は除く。
@@ -535,7 +536,7 @@ const LEDCFG={
     gen:{cjk:{f:["300","Noto Sans JP"],fill:1,cell:1,m:"skel"},lat:{f:["400","Roboto Condensed"],fill:1,m:"skel"},dig:{f:["400","Roboto Condensed"],fill:1,m:"skel"}},
     pal:{r:"#FF3B2E",o:"#FF9A1C",g:"#4BFF5E"},
     col:{kind:{快速:"r",急行:"o",各停:"g",回送:"r",通過:"o"},band:{},kfg:null,tm:"o",dst:"o",mute:"r",pl:"o",cr:"g",nt:"r",go:"g",now:"r",app:"o",
-         tick:"o",apArr:"o",apPass:"r",apSub:"g",train:"o",end:"o"},
+         tick:"o",noteHi:"r",apArr:"o",apPass:"r",apSub:"g",train:"o",end:"o"},
     apInv:.8},           // 接近・通過は文を地の色と反転させて点滅（1つの状態の秒数）。電車の絵・注意の文は出さない
   ledfc:{N:24,G:2,off:"#1A1B1D",bg:"#060607",rad:.45,
     gen:{cjk:{f:["300","Noto Sans JP"],fill:23/24,cell:1,m:"skelV"},lat:{f:["400","Roboto Condensed"],fill:1,m:"skelV"},dig:{f:["400","Roboto Condensed"],fill:1,m:"skelV"}},
@@ -683,26 +684,31 @@ function ledText(out,W,txt,x,y,w,colKey,o={}){
 }
 // 1段ぶんの帯（流れる文字・接近表示の文）を点にしたもの。maxW を超える文は横に詰める
 //   hiKey があれば、印（HI）で囲んだ部分をその色にする（フルカラーの流す文）。なければ印は外して1色
-function ledStrip(txt,colKey,maxW,hiKey){
-  const key=[LED.sty,txt,colKey,maxW||0,hiKey||""].join("|");if(LED.scache.has(key))return LED.scache.get(key);
+function ledStrip(txt,colKey,maxW,hiKey,noteKey){
+  const key=[LED.sty,txt,colKey,maxW||0,hiKey||"",noteKey||""].join("|");if(LED.scache.has(key))return LED.scache.get(key);
   const pt=plain(txt),N=LED.cfg.N,C=LED.cfg.col;
-  if(hiKey&&pt!==txt){
-    const num=/[　-ヿ㐀-鿿＀-￯]/.test(pt),kw=LED.lay?LED.lay.col.kind[1]:Math.round(2.3*N);      // 数字の大きさは文全体で決める（1色のときと同じ）
-    const segs=[];let x=1;
-    for(const p of txt.split(/(\u0001[^\u0002]*\u0002|\u0003[^\u0004]*\u0004)/)){if(!p)continue;
+  if((hiKey||noteKey)&&pt!==txt){
+    // 数字の大きさは文ごとに決める：日本語の文は時刻と同じ大きい数字、英語の文は英字のベースラインにそろう英数の数字
+    //   （日英交互では日本語と英語が1本の文に続くので、「◆」と日英のつなぎ「　　　」で区切った文ごとに見る。2026-11-13 本人の指定）
+    const JA=/[ぁ-ヿ㐀-鿿＀-￯]/,big=[];for(const c of pt.split(/(◆|　　　)/)){const b=JA.test(c);for(const _ of c)big.push(b)}
+    const kw=LED.lay?LED.lay.col.kind[1]:Math.round(2.3*N);
+    const segs=[];let x=1,ci=0;
+    const runs=t=>{const out=[];let cur="",cb=null;for(const c of t){const b=big[ci++]??false;if(cb!==null&&b!==cb){out.push([cur,cb]);cur=""}cur+=c;cb=b}if(cur)out.push([cur,cb]);return out};
+    for(const p of txt.split(/(\u0001[^\u0002]*\u0002|\u0003[^\u0004]*\u0004|\u0006[^\u0007]*\u0007)/)){if(!p)continue;
       if(p[0]==="\u0003"){      // 種別：種別の欄と同じ幅・同じ色の地に、同じ割り付けで出す
-        const [k,t]=p.slice(1,-1).split("\u0005"),band=C.band[k],tw=ledSet(t,0,{num}).tot;
-        if(band){const bw=Math.max(kw,Math.ceil(tw)+2);segs.push({x,t,w:bw,band,col:C.kind[k]||colKey,ja:/[^\x00-\x7f]/.test(t)});x+=bw}
-        else{segs.push({x,t,w:tw,col:hiKey});x+=tw}
+        const [k,t]=p.slice(1,-1).split("\u0005"),num=big[ci]??false,band=C.band[k],tw=ledSet(t,0,{num}).tot;ci+=[...t].length;
+        if(band){const bw=Math.max(kw,Math.ceil(tw)+2);segs.push({x,t,w:bw,band,col:C.kind[k]||colKey,ja:/[^\x00-\x7f]/.test(t),num});x+=bw}
+        else{segs.push({x,t,w:tw,col:hiKey||colKey,num});x+=tw}
         continue}
-      const hi=p[0]==="\u0001",t=plain(p),tw=ledSet(t,0,{num}).tot;segs.push({x,t,w:tw,col:hi?hiKey:colKey});x+=tw}
+      const col=p[0]==="\u0001"?hiKey||colKey:p[0]==="\u0006"?noteKey||hiKey||colKey:colKey;
+      for(const [t,num] of runs(plain(p))){const tw=ledSet(t,0,{num}).tot;segs.push({x,t,w:tw,col,num});x+=tw}}
     const w=Math.ceil(x)+1;
     if(!maxW||w<=maxW){
       const buf=new Uint8Array(w*N),keys=Object.keys(LED.cfg.pal);
       for(const s of segs){
         if(s.band){const bi=keys.indexOf(s.band)+1,x0=Math.round(s.x);for(let j=0;j<N;j++)buf.fill(bi,j*w+x0,j*w+x0+s.w);
-          ledText(buf,w,s.t,x0+1,0,s.w-2,s.col,{align:"c",num,just:s.ja?s.w:0})}
-        else ledText(buf,w,s.t,s.x,0,s.w,s.col,{num})}
+          ledText(buf,w,s.t,x0+1,0,s.w-2,s.col,{align:"c",num:s.num,just:s.ja?s.w:0})}
+        else ledText(buf,w,s.t,s.x,0,s.w,s.col,{num:s.num})}
       const s={w,buf};LED.scache.set(key,s);return s;
     }
   }
@@ -849,10 +855,10 @@ function ledFrame(){
     // 切り替わったら（接近表示の後など）1秒あけてから、文の頭を右端から流し始める。
     //   流し終えたら、列車の位置を出せるときは POS_DUR 秒出してから、また1秒あけて流す
     //   流し終えるごとに、文の終わりの啓発文を次のものに替える
-    const s=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi);const per=W+s.w,wait=1,Dt=wait+per/v,tn=performance.now();
+    const s=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi,C.noteHi);const per=W+s.w,wait=1,Dt=wait+per/v,tn=performance.now();
     if(b.mode==="pos"){if(el>=POS_DUR||!LED.pos){b.mode="tick";b.t0=tn;el=0}}
     else if(el>=Dt){b.n++;if(LED.pos){b.mode="pos";b.t0=tn;el=0}else{b.t0+=Dt*1000;el-=Dt}}
-    const sn=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi);
+    const sn=ledStrip(b.texts[b.n%b.texts.length],C.tick,0,C.tickHi,C.noteHi);
     if(b.mode==="pos"){const on=Math.floor(el*2)%2===0,ps=ledPosStrip(LED.pos,on);parts.push([ps,Math.round((W-ps.w)/2)]);sig="p"+LED.pos.key+"|"+on}
     else if(el>=wait){const px=W-Math.floor((el-wait)*v);parts.push([sn,px]);sig="t"+b.n+"|"+px}else sig="t-";
   }else{
