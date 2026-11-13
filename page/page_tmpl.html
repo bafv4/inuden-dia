@@ -1,7 +1,7 @@
 <title>犬電 朝ダイヤ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
 /* Layout: 運転計画の資料。見出し → 要点 → 横に続くダイヤグラム（駅名固定）→ 駅時刻表 → 列車一覧 → 増発・回送・滞泊 → 前提 */
 :root{
@@ -10,7 +10,7 @@
   --k-loc:#35383B; --k-exp:#246BA3; --k-rap:#BE493B; --k-dh:#9A8B7E; --k-fg:#FFFFFF;
   --dia-bg:#FFFDF8; --dia-grid:#ECE4D8; --dia-grid2:#DCCFBF; --dia-st:#E7DED2; --dia-major:#CDBDAA;
   --f-ui:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
-  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-num:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#2E3134; --panel:#35383B; --ink:#F5F1E9; --sub:#DED2C4; --muted:#B8A898; --line:#4C5054; --grid:rgba(222,210,196,.04);
@@ -28,6 +28,7 @@ body{background-color:var(--bg);color:var(--ink);font-family:var(--f-ui);line-he
 .wrap{max-width:1440px;margin:0 auto;padding-block:36px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
 header{display:flex;flex-direction:column;gap:10px;max-width:72ch}
 .eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--sub);font-weight:500}
+.home{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-bottom:4px;padding:5px 12px 5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:13px;line-height:1.2;text-decoration:none}.home:hover,.home:focus-visible{border-color:var(--ink)}      /* 入口（index.html）へ戻る */
 h1{font-size:clamp(26px,4vw,36px);font-weight:700;letter-spacing:.06em;margin:0;line-height:1.3;text-wrap:balance}
 h2{font-size:18px;margin:0;letter-spacing:.08em;text-wrap:balance}
 h3{font-size:14.5px;margin:0;letter-spacing:.04em}
@@ -150,6 +151,7 @@ ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
 
 <div class="wrap">
 <header>
+  <a class="home" href="index.html"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>ホーム</a>
   <div class="eyebrow">犬村電気鉄道　運転計画（案）　平日</div>
   <h1>始発から朝ラッシュまでのダイヤ</h1>
   <p class="lead" id="lead"></p>
@@ -158,7 +160,7 @@ ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
     <span><i class="sw" style="--c:var(--k-rap)"></i>快速</span>
     <span><i class="sw" style="--c:var(--k-exp)"></i>急行</span>
     <span><i class="sw thin" style="--c:var(--k-loc)"></i>各停</span>
-    <span><i class="sw" style="--c:var(--amber)"></i>増発（ピーク時のみ）</span>
+    <span id="lgExtra"><i class="sw" style="--c:var(--amber)"></i>増発（ピーク時のみ）</span>
     <span><i class="sw dash" style="--c:var(--k-dh)"></i>回送</span>
   </div>
 </header>
@@ -222,14 +224,17 @@ const fmt=(t,sec=true)=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor
 const fmtP=t=>{t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return `${h}:${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}`};            // 秒は00でも書く（本人の指定）
 const short=s=>({"奥雲温泉":"温","犬塚":"塚","秋田台":"秋","高島":"高","蓮木市":"蓮","就島":"就","新狛野":"狛","学院前":"学","軒屋":"軒","新犬村":"新"})[s]||s[0];
 // ---- 要点
-if(D.title){document.querySelector('h1').textContent=D.title;document.title=D.title;}
+if(D.noExtraHi){document.getElementById('lgExtra').remove();      // 終日のダイヤは増発を黄色で示さない（ダイヤグラムの縁どり・駅の時刻表の下線。2026-11-13 本人の指定）
+  const m=document.getElementById('stTitle').nextElementSibling;m.textContent=m.textContent.replace('黄色の下線は増発列車です。','');}
+if(D.title){document.querySelector('h1').textContent=D.title;document.title=D.pagetitle||D.title;}      // pagetitle：タブの題（終日のダイヤは「犬電 終日ダイヤ」）
 document.getElementById('lead').textContent=D.lead;
 if(D.links&&D.links.length){            // 関連ページへのリンク（[[名前, 行き先, 補足]]。export.py が終日のダイヤのときに運用表を入れる）
   const el=document.getElementById('links');el.hidden=false;
   for(const [name,href,sub] of D.links){const s=document.createElement('span'),a=document.createElement('a');a.href=href;a.textContent=name+' →';s.append(a);if(sub)s.append('　'+sub);el.append(s);}
 }
 document.getElementById('facts').innerHTML=D.facts.map(f=>`<div class="fact"><dt>${f[0]}</dt><dd>${f[1]}</dd>${f[2]?`<span class="s">${f[2]}</span>`:''}</div>`).join('');
-document.getElementById('notes').innerHTML=D.notes.map(n=>`<div><h3>${n[0]}</h3>${n[1].map(p=>`<p>${p}</p>`).join('')}</div>`).join('');
+if(!D.notes.length)document.getElementById('notes').closest('section').remove();      // 節を出さないページ（終日のダイヤ）は notes を空にしてある
+else document.getElementById('notes').innerHTML=D.notes.map(n=>`<div><h3>${n[0]}</h3>${n[1].map(p=>`<p>${p}</p>`).join('')}</div>`).join('');
 // ---- ダイヤグラム
 const pane=document.getElementById('pane'),cv=document.getElementById('cv'),lab=document.getElementById('lab');
 let line="main",pxMin=6,sel=null,stSel="新犬村";
@@ -284,7 +289,7 @@ function draw(){
     cache.push({t,sc});
     const hi=sel&&sel===t.id;
     g.setLineDash(t.kind==="回送"?[5,4]:[]);
-    if(t.extra){g.strokeStyle=css('--amber');g.lineWidth=hi?6:4.5;path(g,sc);g.stroke();}
+    if(t.extra&&!D.noExtraHi){g.strokeStyle=css('--amber');g.lineWidth=hi?6:4.5;path(g,sc);g.stroke();}
     g.strokeStyle=css(KC[t.kind]);g.lineWidth=hi?3.2:(t.kind==="各停"||t.kind==="回送"?1.1:1.8);
     path(g,sc);g.stroke();
   }
@@ -348,7 +353,7 @@ function boards(){
     const L=groups[k].sort((a,b)=>a.dep-b.dep);const by={};
     const cnt={};L.forEach(x=>cnt[x.t.d]=(cnt[x.t.d]||0)+1);const main=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
     L.forEach(x=>{const h=Math.floor(x.dep/3600);(by[h]=by[h]||[]).push(x)});
-    return `<div class="board"><h3>${dirName[k]||k}</h3><table>${Object.keys(by).map(h=>`<tr><td class="h">${h}</td><td><div class="mins">${by[h].map(x=>{const t=x.t,m=Math.floor(x.dep%3600/60);const tag=t.kind==="各停"?'':`<span class="t" style="--c:var(${KC[t.kind]})">${t.kind[0]}</span>`;return `<button type="button" class="mn ${t.extra?'x':''}" data-id="${t.id}" title="${t.kind} ${t.d}行 ${fmtP(x.dep)}${x.trk?' '+x.trk+'番線':''}">${tag}${String(m).padStart(2,'0')}${x.trk?`<sup>${x.trk}</sup>`:''}${t.d!==main?`<span class="d">${short(t.d)}</span>`:''}</button>`}).join('')}</div></td></tr>`).join('')}</table><p class="small" style="padding:6px 10px">無印の行先は${main}行。${L.some(x=>x.trk)?'分の右肩の小さい数字は番線。':''}</p></div>`;
+    return `<div class="board"><h3>${dirName[k]||k}</h3><table>${Object.keys(by).map(h=>`<tr><td class="h">${h}</td><td><div class="mins">${by[h].map(x=>{const t=x.t,m=Math.floor(x.dep%3600/60);const tag=t.kind==="各停"?'':`<span class="t" style="--c:var(${KC[t.kind]})">${t.kind[0]}</span>`;return `<button type="button" class="mn ${t.extra&&!D.noExtraHi?'x':''}" data-id="${t.id}" title="${t.kind} ${t.d}行 ${fmtP(x.dep)}${x.trk?' '+x.trk+'番線':''}">${tag}${String(m).padStart(2,'0')}${x.trk?`<sup>${x.trk}</sup>`:''}${t.d!==main?`<span class="d">${short(t.d)}</span>`:''}</button>`}).join('')}</div></td></tr>`).join('')}</table><p class="small" style="padding:6px 10px">無印の行先は${main}行。${L.some(x=>x.trk)?'分の右肩の小さい数字は番線。':''}</p></div>`;
   }).join('');
   document.getElementById('boards').innerHTML=html||'<p class="small">この駅に止まる列車はありません。</p>';
   document.querySelectorAll('#boards .mn').forEach(b=>b.onclick=()=>focusTrain(b.dataset.id));
@@ -391,7 +396,7 @@ function table(){
       return (i>Math.min(a,b)&&i<Math.max(a,b))?'<td class="v">║</td>':'<td class="n">‥</td>';
     }
     if(!r[3])return '<td class="p">ﾚ</td>';
-    const w=r[4]>=60?' class="wait"':'';
+    const w=r[4]>=60&&!D.noWaitHi?' class="wait"':'';      // 待避などで1分以上止まる発時刻を赤字に（終日のダイヤは普通の色。2026-11-13 本人の指定）
     if(kind==="a")return r[1]!=null?`<td>${fmtT(r[1])}</td>`:'<td></td>';
     if(kind==="d")return r[2]!=null?`<td${w}>${fmtT(r[2])}</td>`:'<td></td>';
     const v=lastSt.includes(s[0])?(r[1]??r[2]):(r[2]??r[1]);
@@ -417,7 +422,10 @@ function table(){
   const hs=[...new Set(L.map(c=>Math.floor(c.v/3600)))].filter(h=>h>=0).sort((a,b)=>a-b);
   const hb=document.getElementById('ttHours');
   hb.innerHTML='<span>時刻へ移動</span>'+hs.map(h=>`<button type="button" data-h="${h}">${h}</button>`).join('');
-  hb.onclick=e=>{const b=e.target.closest('button');if(!b)return;const j=L.findIndex(c=>c.v>=b.dataset.h*3600);if(j<0)return;const th=tt.tHead.rows[0].cells[j+1],box=tt.parentElement;box.scrollLeft=Math.max(0,th.offsetLeft-104);};
+  hb.onclick=e=>{const b=e.target.closest('button');if(!b)return;const j=L.findIndex(c=>c.v>=b.dataset.h*3600);if(j<0)return;const th=tt.tHead.rows[0].cells[j+1],box=tt.parentElement;
+    // 列の位置は表の枠から測る（offsetLeft はページの左端から測るので、枠の左の余白ぶん行き過ぎて、列が左の駅名の欄の下に隠れていた）
+    const x=th.getBoundingClientRect().left-box.getBoundingClientRect().left-box.clientLeft+box.scrollLeft;
+    box.scrollLeft=Math.max(0,x-tt.tHead.rows[0].cells[0].offsetWidth);};
   markRow();
 }
 function markRow(){            // 選んだ列車の列を塗る（どの行も同じ並びなので :nth-child で指定できる）

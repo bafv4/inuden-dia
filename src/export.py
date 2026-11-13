@@ -211,7 +211,7 @@ D={"t0":T0,"t1":T1,"scrollTo":T(7,0),
           ["気になる点",issues]],
  "main":main,"hasu":hasu,"single":[list(x) for x in net.SINGLE],
  "trains":trains,"extras":extras,"stab":stab}
-if ALLDAY: D["title"]="始発から終電までのダイヤ"; D["scrollTo"]=T(6,30); D["links"]=[["車両運用表","unyo.html","編成1本ずつの動きと、日またぎの順序"]] if FINAL else []      # 運用表（unyo.py が作る page/unyo.html）へのリンク
+if ALLDAY: D["title"]="始発から終電までのダイヤ"; D["pagetitle"]="犬電 終日ダイヤ"; D["notes"]=[]; D["noExtraHi"]=True; D["noWaitHi"]=True; D["scrollTo"]=T(6,30); D["links"]=[["車両運用表","unyo.html","編成1本ずつの動きと、日またぎの順序"]] if FINAL else []      # 運用表（unyo.py が作る page/unyo.html）へのリンク
 if PATTERN:
     full=obj[0]
     m=pat_eval.score(full); ov=pat_eval.overtakes(full); sp=pat_eval.spacing(full)
@@ -231,6 +231,7 @@ if PATTERN:
 tmpl=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..","page","page_tmpl.html"),encoding="utf-8").read()
 js=json.dumps(D,ensure_ascii=False).replace("</","<\\/")
 page=tmpl.replace("__DATA__",js)
+if D.get("pagetitle"): page=page.replace("<title>犬電 朝ダイヤ</title>","<title>"+D["pagetitle"]+"</title>",1)       # タブの題（本人の指定 2026-11-13）
 if "charset" not in page[:300].lower(): page='<meta charset="utf-8">'+chr(10)+page       # ファイルを直接ブラウザで開いても文字化けしないように
 open(OUT,"w",encoding="utf-8").write(page)
 print("書き出し",OUT,"列車",len(trains),"競合",len(cs))
