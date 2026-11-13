@@ -30,6 +30,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);line
 .wrap{max-width:1280px;margin:0 auto;padding:28px 16px 64px;display:flex;flex-direction:column;gap:28px}
 header{display:flex;flex-direction:column;gap:6px}
 .eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--sub);font-weight:500}
+.home{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-bottom:4px;padding:5px 12px 5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:13px;line-height:1.2;text-decoration:none}.home:hover,.home:focus-visible{border-color:var(--ink)}      /* 入口（index.html）へ戻る */
 h1{font-size:clamp(24px,4vw,32px);margin:0;letter-spacing:.08em;line-height:1.3}
 h2{font-size:16px;margin:0;letter-spacing:.08em}
 .lead{color:var(--sub);font-size:13.5px;margin:0;max-width:80ch}
@@ -204,6 +205,7 @@ dialog::backdrop{background:rgba(20,22,24,.45)}
 <body>
 <div class="wrap">
   <header>
+    <a class="home" href="index.html"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i="home"></span></a>
     <div class="eyebrow" data-i="eyebrow"></div>
     <h1 data-i="h1"></h1>
     <p class="lead" id="lead"></p>
@@ -315,7 +317,7 @@ const kn=(k,l)=>KN[k][l==="en"?1:0], kl=(k,l)=>KN[k][l==="en"?1:2];
 const kb=(k,l)=>l==="en"?(KN[k][3]||KN[k][1]):KN[k][0];      // 盤面の種別の欄（英語は枠に入る略称があればそれ。案内の文・表は kn・kl の正式名）
 
 // ---- 画面まわりの文言（盤面の言語が「交互」のときは日本語）
-const I={eyebrow:["犬村電気鉄道 ・ 平日ダイヤ","Inumura Railway · Weekday timetable"],h1:["発車標","Departure board"],
+const I={home:["ホーム","Home"],eyebrow:["犬村電気鉄道 ・ 平日ダイヤ","Inumura Railway · Weekday timetable"],h1:["発車標","Departure board"],
  cStation:["駅","Station"],cTrack:["番線","Track"],cDir:["方面","Direction"],cTime:["時刻","Time"],cStyle:["盤面","Display"],cRows:["段数","Rows"],cLang:["言語","Language"],cShow:["表示","Show"],
  now:["現在時刻","Now"],m10:["−10分","−10 min"],m1:["−1分","−1 min"],p1:["＋1分","+1 min"],p10:["＋10分","+10 min"],
  sLcd:["液晶","LCD"],sLed3:["3色LED","3-color LED"],sLedfc:["フルカラーLED","Full-color LED"],auto:["自動","Auto"],lAlt:["日英交互","Alternate"],
@@ -328,7 +330,7 @@ const tx=k=>I[k][CL()==="en"?1:0];
 const L2=(ja,en,l)=>(l||CL())==="en"?en:ja;
 
 // ---- 状態
-const S={si:0,pl:"all",live:true,base:DAY0,t0:performance.now(),play:false,spd:10,pass:false,term:false,dh:true,appr:true,sty:"lcd",rows:"auto",lang:"ja"};
+const S={si:0,pl:"all",live:true,base:DAY0,t0:performance.now(),play:false,spd:10,pass:false,term:false,dh:true,appr:true,sty:"ledfc",rows:"auto",lang:"alt"};
 function now(){
   if(S.live){const d=new Date();let s=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()+d.getMilliseconds()/1000;if(s<DAY0)s+=86400;return s}
   return S.base+(S.play?(performance.now()-S.t0)/1000*S.spd:0);
@@ -1042,7 +1044,7 @@ function saveUrl(){
   const q=new URLSearchParams();q.set("st",ST[S.si].name);if(dirOf()!=null)q.set("dir",BND[dirOf()][0]);else if(S.pl!=="all")q.set("pl",S.pl);
   if(!S.live)q.set("t",hms(now()).replace("'",":"));
   if(S.pass)q.set("pass","1");if(S.term)q.set("term","1");if(!S.dh)q.set("dh","0");if(!S.appr)q.set("appr","0");
-  if(S.sty!=="lcd")q.set("sty",S.sty);if(S.rows!=="auto")q.set("rows",S.rows);if(S.lang!=="ja")q.set("lang",S.lang);
+  if(S.sty!=="ledfc")q.set("sty",S.sty);if(S.rows!=="auto")q.set("rows",S.rows);if(S.lang!=="alt")q.set("lang",S.lang);
   history.replaceState(null,"","?"+q.toString());
 }
 function loadUrl(){
@@ -1052,9 +1054,9 @@ function loadUrl(){
   const di=BND.findIndex(b=>b[0]===q.get("dir")||b[1]===q.get("dir"));if(di>=0&&ST[S.si].dirs.includes(di))S.pl="d:"+di;
   const t=q.get("t");if(t&&/^\d{1,2}:\d{2}(:\d{2})?$/.test(t)){const [h,m,s]=t.split(":").map(Number);let x=h*3600+m*60+(s||0);if(x<DAY0)x+=86400;S.live=false;S.base=x}
   S.pass=q.get("pass")==="1";S.term=q.get("term")==="1";S.dh=q.get("dh")!=="0";S.appr=q.get("appr")!=="0";
-  const sty=q.get("sty");S.sty=sty==="led"?"led3":["led3","ledfc"].includes(sty)?sty:"lcd";      // led は以前の3色LEDの指定
+  const sty=q.get("sty");S.sty=sty==="led"?"led3":["lcd","led3"].includes(sty)?sty:"ledfc";      // led は以前の3色LEDの指定。指定がなければフルカラーLED（2026-11-13 本人の指定）
   const r=q.get("rows");S.rows=r&&/^[2-8]$/.test(r)?r:"auto";
-  const lg=q.get("lang");S.lang=["en","alt"].includes(lg)?lg:"ja";
+  const lg=q.get("lang");S.lang=["ja","en"].includes(lg)?lg:"alt";      // 指定がなければ日英交互（2026-11-13 本人の指定）
 }
 
 // ---- このあとの発車
